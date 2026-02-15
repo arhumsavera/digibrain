@@ -138,6 +138,11 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not message:
         return
 
+    # If replying to a bot message, prepend it as context
+    reply = update.message.reply_to_message
+    if reply and reply.text:
+        message = f"[Previous message for context:\n{reply.text}]\n\nUser's follow-up: {message}"
+
     await route_message(update, message)
 
 

@@ -22,7 +22,7 @@ async def run_claude(
     cmd = ["claude"]
     if session_id:
         cmd.extend(["--resume", session_id])
-    cmd.extend(["-p", message, "--output-format", "stream-json"])
+    cmd.extend(["-p", message, "--output-format", "stream-json", "--verbose"])
 
     logger.info("Running: %s", " ".join(cmd[:4]) + " ...")
     proc = await asyncio.create_subprocess_exec(
