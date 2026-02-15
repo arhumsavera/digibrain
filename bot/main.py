@@ -5,6 +5,7 @@ import logging
 import time
 
 from telegram import Update
+from telegram.constants import ParseMode
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -48,14 +49,18 @@ def record_message(user_id: int):
 
 
 async def send_response(update: Update, text: str):
-    """Send response, splitting into multiple messages if needed."""
+    """Send response, splitting into multiple messages if needed.
+    Tries Markdown first, falls back to plain text if parsing fails."""
     if not text:
         text = "(empty response)"
 
     while text:
         chunk = text[:MAX_MESSAGE_LENGTH]
         text = text[MAX_MESSAGE_LENGTH:]
-        await update.message.reply_text(chunk)
+        try:
+            await update.message.reply_text(chunk, parse_mode=ParseMode.MARKDOWN)
+        except Exception:
+            await update.message.reply_text(chunk)
 
 
 async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
