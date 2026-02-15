@@ -40,10 +40,9 @@ async def run_claude(message: str, session_id: str | None = None) -> tuple[str, 
 
 async def run_opencode(message: str, session_id: str | None = None) -> tuple[str, str | None]:
     """Run opencode CLI and return (response_text, session_id)."""
-    cmd = ["opencode", "run"]
+    cmd = ["opencode", "run", message, "--format", "json"]
     if session_id:
         cmd.extend(["--session", session_id])
-    cmd.extend([message, "--format", "json", "-q"])
 
     logger.info("Running: %s", " ".join(cmd[:4]) + " ...")
     proc = await asyncio.create_subprocess_exec(
@@ -56,8 +55,9 @@ async def run_opencode(message: str, session_id: str | None = None) -> tuple[str
 
     if proc.returncode != 0:
         err = stderr.decode().strip()
-        logger.error("opencode CLI error: %s", err)
-        return f"Error from opencode:\n{err}", session_id
+        out = stdout.decode().strip()
+        logger.error("opencode CLI error (rc=%d): stderr=%s stdout=%s", proc.returncode, err, out)
+        return f"Error from opencode (rc={proc.returncode}):\n{err or out or 'no output'}", session_id
 
     # Parse NDJSON — collect text events and session ID
     text_parts = []

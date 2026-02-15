@@ -12,7 +12,7 @@ from telegram.ext import (
     filters,
 )
 
-from bot.config import BOT_TOKEN, ALLOWED_USER_IDS
+from bot.config import BOT_TOKEN, ALLOWED_USER_IDS, WORKING_DIR
 from bot.sessions import sessions
 from bot.agents import run_agent
 
@@ -156,7 +156,10 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
 
     logger.info("Bot starting (polling)...")
-    app.run_polling()
+    logger.info("Default agent: opencode")
+    logger.info("Allowed users: %s", ALLOWED_USER_IDS or "all")
+    logger.info("Working dir: %s", WORKING_DIR)
+    app.run_polling(drop_pending_updates=True)
 
 
 if __name__ == "__main__":
