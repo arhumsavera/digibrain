@@ -117,6 +117,32 @@ When the user asks about jobs, applications, resumes, or recruiting emails, use 
 - **"How's my pipeline?"**: `GET /api/dashboard/stats` or `GET /api/applications`
 - **"Tailor my resume for X role"**: Find the job and resume IDs, then `POST /api/resumes/tailor`
 
+## Tools
+
+### Email (`python tools/gmail.py`)
+Fetches Gmail via IMAP. Use this when the user asks to check email.
+
+```bash
+python tools/gmail.py inbox                        # latest 10 emails
+python tools/gmail.py inbox --limit 5              # latest 5
+python tools/gmail.py inbox --unread               # unread only
+python tools/gmail.py inbox --since 3d             # last 3 days
+python tools/gmail.py inbox --since 1w             # last week
+python tools/gmail.py inbox --from "linkedin"      # from address contains
+python tools/gmail.py inbox --subject "invitation" # subject contains
+python tools/gmail.py inbox --label "Jobs"         # specific Gmail label
+python tools/gmail.py read <message_id>            # read full email
+python tools/gmail.py search "job opportunity"     # full-text search
+```
+
+Filters can be combined: `inbox --unread --since 1d --from "recruiter"`
+
+**Email → ApplyOps workflow:**
+1. `python tools/gmail.py inbox --unread` → scan for job-related emails
+2. `python tools/gmail.py read <id>` → get full email text
+3. If it's a job/recruiter email: `POST /api/discovery/email` with the email text
+4. Show user the result, if they confirm: `POST /api/discovery/email/confirm`
+
 ## Project Structure
 ```
 memory/
@@ -126,4 +152,6 @@ memory/
 scripts/
 ├── consolidate.py  # summarize old episodic logs into semantic memory
 └── forget.py       # selectively browse and delete memories
+tools/
+└── email.py        # Gmail IMAP fetch and search
 ```
