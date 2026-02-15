@@ -54,6 +54,69 @@ To consolidate old episodic memories into semantic summaries:
 - Keep entries concise — this is context for future tasks, not a transcript
 - When in doubt about whether to save something, save it to episodic
 
+## ApplyOps API (Job Application Tracker)
+
+ApplyOps is running at `http://localhost:8000`. Use `curl` to interact with it.
+When the user asks about jobs, applications, resumes, or recruiting emails, use these endpoints.
+
+### Jobs
+| Method | Path | What it does |
+|--------|------|--------------|
+| POST | `/api/jobs` | Create a job listing (body: `{title, company_name, description, url?, source?}`) |
+| GET | `/api/jobs` | List jobs (query: `?company_id=&approval_status=`) |
+| GET | `/api/jobs/{id}` | Get job details |
+| PUT | `/api/jobs/{id}` | Update a job |
+| POST | `/api/jobs/{id}/approve` | Approve a discovered job |
+| POST | `/api/jobs/{id}/reject` | Reject a discovered job |
+| POST | `/api/jobs/{id}/analyze` | AI-analyze job for skills/requirements |
+| PUT | `/api/jobs/{id}/analysis` | Confirm analysis results |
+| POST | `/api/jobs/{id}/match` | Match a resume against this job (body: `{resume_id}`) |
+
+### Resumes
+| Method | Path | What it does |
+|--------|------|--------------|
+| POST | `/api/resumes` | Create a resume version |
+| GET | `/api/resumes` | List all resumes |
+| GET | `/api/resumes/{id}` | Get resume details |
+| POST | `/api/resumes/tailor` | Tailor resume to job (body: `{resume_id, job_id, mode: "suggest"\|"rewrite"}`) |
+| PUT | `/api/resumes/tailor/confirm` | Confirm and save tailored resume |
+
+### Applications
+| Method | Path | What it does |
+|--------|------|--------------|
+| POST | `/api/applications` | Create application (body: `{job_id, resume_version_id?}`) |
+| GET | `/api/applications` | List applications (query: `?status=`) |
+| GET | `/api/applications/{id}` | Get application details |
+| PATCH | `/api/applications/{id}` | Update status/details |
+| DELETE | `/api/applications/{id}` | Delete application |
+
+### Discovery (from emails/links)
+| Method | Path | What it does |
+|--------|------|--------------|
+| POST | `/api/discovery/email` | Extract job info from email text (body: `{text}`) |
+| POST | `/api/discovery/email/confirm` | Confirm discovered job → create listing |
+
+### Emails
+| Method | Path | What it does |
+|--------|------|--------------|
+| POST | `/api/emails/extract` | Extract structured data from email text |
+| POST | `/api/emails` | Save email event |
+| GET | `/api/emails` | List email events |
+
+### Other
+| Method | Path | What it does |
+|--------|------|--------------|
+| GET | `/api/dashboard/stats` | Dashboard stats (counts, skill gaps) |
+| GET | `/api/companies` | List companies |
+| POST | `/api/companies` | Create company |
+| GET | `/api/task-runs` | List AI agent audit logs |
+
+### Workflow examples
+- **"Check this job link"**: Fetch the URL, then `POST /api/jobs` with extracted info, then `POST /api/jobs/{id}/analyze`
+- **"Parse this recruiter email"**: `POST /api/discovery/email` with the text, review result, then `/confirm`
+- **"How's my pipeline?"**: `GET /api/dashboard/stats` or `GET /api/applications`
+- **"Tailor my resume for X role"**: Find the job and resume IDs, then `POST /api/resumes/tailor`
+
 ## Project Structure
 ```
 memory/
