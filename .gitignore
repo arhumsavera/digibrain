@@ -1,6 +1,7 @@
 # Memory contents (personal data, stays local)
 memory/semantic/*.md
 memory/episodic/*.md
+memory/episodic/archive/
 memory/procedural/*.md
 
 # Keep templates and directory structure
