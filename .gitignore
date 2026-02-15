@@ -1,0 +1,20 @@
+# Memory contents (personal data, stays local)
+memory/semantic/*.md
+memory/episodic/*.md
+memory/procedural/*.md
+
+# Keep templates and directory structure
+!memory/**/_template.md
+!memory/**/.gitkeep
+
+# Environment
+.env
+.env.*
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# OS
+.DS_Store
