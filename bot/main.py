@@ -2,6 +2,7 @@
 """Telegram bot that bridges messages to Claude Code and opencode."""
 
 import logging
+import time
 
 from telegram import Update
 from telegram.ext import (
@@ -12,7 +13,7 @@ from telegram.ext import (
     filters,
 )
 
-from bot.config import BOT_TOKEN, ALLOWED_USER_IDS, WORKING_DIR
+from bot.config import BOT_TOKEN, ALLOWED_USER_IDS, WORKING_DIR, RATE_LIMIT_PER_MINUTE
 from bot.sessions import sessions
 from bot.agents import run_agent
 
@@ -24,9 +25,26 @@ logger = logging.getLogger(__name__)
 
 MAX_MESSAGE_LENGTH = 4096
 
+# Rate limiting: track message timestamps per user
+_rate_log: dict[int, list[float]] = {}
+# Concurrency: track if a user has an agent running
+_active_users: set[int] = set()
+
 
 def is_authorized(user_id: int) -> bool:
-    return not ALLOWED_USER_IDS or user_id in ALLOWED_USER_IDS
+    return user_id in ALLOWED_USER_IDS
+
+
+def is_rate_limited(user_id: int) -> bool:
+    now = time.time()
+    timestamps = _rate_log.setdefault(user_id, [])
+    # Prune old entries
+    _rate_log[user_id] = [t for t in timestamps if now - t < 60]
+    return len(_rate_log[user_id]) >= RATE_LIMIT_PER_MINUTE
+
+
+def record_message(user_id: int):
+    _rate_log.setdefault(user_id, []).append(time.time())
 
 
 async def send_response(update: Update, text: str):
@@ -61,10 +79,12 @@ async def status_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     session = sessions.get(update.effective_user.id)
     sid = session.session_id or "none"
     sid_display = f"{sid[:12]}..." if len(sid) > 12 else sid
+    active = update.effective_user.id in _active_users
     await update.message.reply_text(
         f"Agent: {session.agent}\n"
         f"Session: {sid_display}\n"
-        f"Messages: {session.message_count}"
+        f"Messages: {session.message_count}\n"
+        f"Active: {'yes' if active else 'no'}"
     )
 
 
@@ -121,8 +141,18 @@ async def route_message(update: Update, message: str):
     user_id = update.effective_user.id
     session = sessions.get(user_id)
 
-    # Show typing indicator
-    await update.message.chat.send_action("typing")
+    # Rate limit check
+    if is_rate_limited(user_id):
+        await update.message.reply_text("Slow down — rate limit reached. Try again in a minute.")
+        return
+
+    # Concurrency check
+    if user_id in _active_users:
+        await update.message.reply_text("Still working on your last message. Wait for it to finish or /new to reset.")
+        return
+
+    record_message(user_id)
+    _active_users.add(user_id)
 
     logger.info(
         "User %s → %s (session: %s, msg #%d)",
@@ -132,15 +162,33 @@ async def route_message(update: Update, message: str):
         session.message_count + 1,
     )
 
+    # Send initial status message that we'll edit with progress
+    status_msg = await update.message.reply_text(f"[{session.agent}] Working...")
+
+    async def on_progress(text: str):
+        """Edit the status message with progress updates."""
+        try:
+            await status_msg.edit_text(f"[{session.agent}] {text}")
+        except Exception:
+            pass  # Telegram may reject edits if text hasn't changed
+
     try:
         response, new_session_id = await run_agent(
-            session.agent, message, session.session_id
+            session.agent, message, session.session_id, on_progress
         )
         session.session_id = new_session_id
         session.message_count += 1
-    except Exception as e:
+    except Exception:
         logger.exception("Agent error")
-        response = f"Agent error: {e}"
+        response = "Agent error occurred."
+    finally:
+        _active_users.discard(user_id)
+
+    # Delete the progress message and send the final response
+    try:
+        await status_msg.delete()
+    except Exception:
+        pass
 
     await send_response(update, response)
 
@@ -157,7 +205,7 @@ def main():
 
     logger.info("Bot starting (polling)...")
     logger.info("Default agent: opencode")
-    logger.info("Allowed users: %s", ALLOWED_USER_IDS or "all")
+    logger.info("Allowed users: %s", ALLOWED_USER_IDS)
     logger.info("Working dir: %s", WORKING_DIR)
     app.run_polling(drop_pending_updates=True)
 

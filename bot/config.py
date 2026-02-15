@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -12,4 +13,11 @@ ALLOWED_USER_IDS = {
     for uid in os.environ.get("TELEGRAM_ALLOWED_USER_IDS", "").split(",")
     if uid.strip()
 }
+
+if not ALLOWED_USER_IDS:
+    print("FATAL: TELEGRAM_ALLOWED_USER_IDS is empty. Refusing to start with open access.")
+    sys.exit(1)
+
 WORKING_DIR = str(ROOT_DIR)
+AGENT_TIMEOUT = int(os.environ.get("AGENT_TIMEOUT", "300"))  # 5 min default
+RATE_LIMIT_PER_MINUTE = int(os.environ.get("RATE_LIMIT_PER_MINUTE", "10"))
