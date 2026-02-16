@@ -3,6 +3,7 @@
 
 import logging
 import time
+from pathlib import Path
 
 from telegram import Update
 from telegram.constants import ParseMode
@@ -46,6 +47,17 @@ def is_rate_limited(user_id: int) -> bool:
 
 def record_message(user_id: int):
     _rate_log.setdefault(user_id, []).append(time.time())
+
+
+async def send_files(update: Update, paths: list[Path]):
+    """Send files as Telegram documents."""
+    for p in paths:
+        try:
+            with open(p, "rb") as f:
+                await update.message.reply_document(document=f, filename=p.name)
+            logger.info("Sent file: %s (%dKB)", p.name, p.stat().st_size // 1024)
+        except Exception:
+            logger.exception("Failed to send file: %s", p)
 
 
 async def send_response(update: Update, text: str):
@@ -182,8 +194,9 @@ async def route_message(update: Update, message: str):
         except Exception:
             pass  # Telegram may reject edits if text hasn't changed
 
+    files = []
     try:
-        response, new_session_id = await run_agent(
+        response, new_session_id, files = await run_agent(
             session.agent, message, session.session_id, on_progress
         )
         session.session_id = new_session_id
@@ -199,6 +212,10 @@ async def route_message(update: Update, message: str):
         await status_msg.delete()
     except Exception:
         pass
+
+    # Send any files the agent produced (PDFs, images, etc.)
+    if files:
+        await send_files(update, files)
 
     await send_response(update, response)
 

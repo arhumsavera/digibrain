@@ -17,5 +17,14 @@ __pycache__/
 *.pyc
 .venv/
 
+# Data
+data/*.db
+data/*.json
+data/output/
+
+# Personal / PII
+source_data/
+*.pdf
+
 # OS
 .DS_Store

@@ -54,68 +54,62 @@ To consolidate old episodic memories into semantic summaries:
 - Keep entries concise — this is context for future tasks, not a transcript
 - When in doubt about whether to save something, save it to episodic
 
-## ApplyOps API (Job Application Tracker)
+## ApplyOps (Job Application Tracker)
 
-ApplyOps is running at `http://localhost:8000`. Use `curl` to interact with it.
-When the user asks about jobs, applications, resumes, or recruiting emails, use these endpoints.
+Local CLI tool backed by SQLite. Use `uv run applyops` to interact with it.
+When the user asks about jobs, applications, resumes, or recruiting emails, use these commands.
+
+### Companies
+```bash
+uv run applyops company add "Meta" --url "..." --description "..."
+uv run applyops company list [--json]
+uv run applyops company show <id-or-name> [--json]
+```
 
 ### Jobs
-| Method | Path | What it does |
-|--------|------|--------------|
-| POST | `/api/jobs` | Create a job listing (body: `{title, company_name, description, url?, source?}`) |
-| GET | `/api/jobs` | List jobs (query: `?company_id=&approval_status=`) |
-| GET | `/api/jobs/{id}` | Get job details |
-| PUT | `/api/jobs/{id}` | Update a job |
-| POST | `/api/jobs/{id}/approve` | Approve a discovered job |
-| POST | `/api/jobs/{id}/reject` | Reject a discovered job |
-| POST | `/api/jobs/{id}/analyze` | AI-analyze job for skills/requirements |
-| PUT | `/api/jobs/{id}/analysis` | Confirm analysis results |
-| POST | `/api/jobs/{id}/match` | Match a resume against this job (body: `{resume_id}`) |
+```bash
+uv run applyops job add --title "SWE" --company "Meta" [--url "..." --source email --description "..."]
+uv run applyops job list [--status discovered|approved|rejected] [--company "Meta"] [--json]
+uv run applyops job show <id> [--json]
+uv run applyops job update <id> --status approved [--notes "..." --skills '["python","ml"]']
+uv run applyops job remove <id>
+```
 
 ### Resumes
-| Method | Path | What it does |
-|--------|------|--------------|
-| POST | `/api/resumes` | Create a resume version |
-| GET | `/api/resumes` | List all resumes |
-| GET | `/api/resumes/{id}` | Get resume details |
-| POST | `/api/resumes/tailor` | Tailor resume to job (body: `{resume_id, job_id, mode: "suggest"\|"rewrite"}`) |
-| PUT | `/api/resumes/tailor/confirm` | Confirm and save tailored resume |
+```bash
+uv run applyops resume add --name "base" --file resume.md
+uv run applyops resume add --name "base" --content "markdown text..."
+uv run applyops resume list [--json]
+uv run applyops resume show <id-or-name> [--json] [--full]
+```
 
 ### Applications
-| Method | Path | What it does |
-|--------|------|--------------|
-| POST | `/api/applications` | Create application (body: `{job_id, resume_version_id?}`) |
-| GET | `/api/applications` | List applications (query: `?status=`) |
-| GET | `/api/applications/{id}` | Get application details |
-| PATCH | `/api/applications/{id}` | Update status/details |
-| DELETE | `/api/applications/{id}` | Delete application |
-
-### Discovery (from emails/links)
-| Method | Path | What it does |
-|--------|------|--------------|
-| POST | `/api/discovery/email` | Extract job info from email text (body: `{text}`) |
-| POST | `/api/discovery/email/confirm` | Confirm discovered job → create listing |
+```bash
+uv run applyops app add --job <job_id> [--resume <resume_id>]
+uv run applyops app list [--status draft|applied|interviewing|offered|rejected] [--json]
+uv run applyops app show <id> [--json]
+uv run applyops app update <id> --status applied [--notes "..."]
+uv run applyops app remove <id>
+```
 
 ### Emails
-| Method | Path | What it does |
-|--------|------|--------------|
-| POST | `/api/emails/extract` | Extract structured data from email text |
-| POST | `/api/emails` | Save email event |
-| GET | `/api/emails` | List email events |
+```bash
+uv run applyops email add --sender "..." --subject "..." [--body "..." --job <job_id>]
+uv run applyops email list [--limit 10] [--json]
+```
 
-### Other
-| Method | Path | What it does |
-|--------|------|--------------|
-| GET | `/api/dashboard/stats` | Dashboard stats (counts, skill gaps) |
-| GET | `/api/companies` | List companies |
-| POST | `/api/companies` | Create company |
-| GET | `/api/task-runs` | List AI agent audit logs |
+### Stats & Logs
+```bash
+uv run applyops stats [--json]
+uv run applyops log add --agent opencode --action "analyzed job" --entity-type job --entity-id <id>
+uv run applyops log list [--limit 20] [--json]
+```
 
 ### Workflow examples
-- **"Check this job link"**: Fetch the URL, then `POST /api/jobs` with extracted info, then `POST /api/jobs/{id}/analyze`
-- **"Parse this recruiter email"**: `POST /api/discovery/email` with the text, review result, then `/confirm`
-- **"How's my pipeline?"**: `GET /api/dashboard/stats` or `GET /api/applications`
-- **"Tailor my resume for X role"**: Find the job and resume IDs, then `POST /api/resumes/tailor`
+- **"Check this job link"**: Fetch the URL, extract info, then `job add` with details
+- **"Parse this recruiter email"**: Read the email, then `email add` + `job add` with extracted info
+- **"How's my pipeline?"**: `stats` or `app list`
+- **"Approve a job"**: `job update <id> --status approved`
 
 ## Tools
 
@@ -140,8 +134,8 @@ Filters can be combined: `inbox --unread --since 1d --from "recruiter"`
 **Email → ApplyOps workflow:**
 1. `python tools/gmail.py inbox --unread` → scan for job-related emails
 2. `python tools/gmail.py read <id>` → get full email text
-3. If it's a job/recruiter email: `POST /api/discovery/email` with the email text
-4. Show user the result, if they confirm: `POST /api/discovery/email/confirm`
+3. If it's a job/recruiter email: `uv run applyops email add` + `uv run applyops job add`
+4. Show user the result, confirm, then `uv run applyops job update <id> --status approved`
 
 ## Project Structure
 ```
@@ -153,5 +147,12 @@ scripts/
 ├── consolidate.py  # summarize old episodic logs into semantic memory
 └── forget.py       # selectively browse and delete memories
 tools/
-└── email.py        # Gmail IMAP fetch and search
+├── gmail.py        # Gmail IMAP fetch and search
+└── applyops/       # job application tracker (CLI + web)
+    ├── __main__.py # entry point (uv run applyops)
+    ├── db.py       # shared SQLite data layer
+    ├── cli.py      # Typer CLI commands
+    └── web.py      # web dashboard (coming soon)
+data/
+└── applyops.db     # SQLite database (auto-created, gitignored)
 ```
