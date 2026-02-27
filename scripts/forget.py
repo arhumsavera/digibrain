@@ -88,6 +88,31 @@ def remove_matching_entries(filepath: Path, query: str) -> tuple[str, int]:
     return new_content.strip(), removed
 
 
+def get_file_domain(filepath: Path) -> str | None:
+    """Extract domain tag from a memory file (<!-- domain: X --> comment)."""
+    try:
+        content = filepath.read_text()
+        m = re.search(r"<!--\s*domain:\s*(\S+)\s*-->", content)
+        return m.group(1) if m else None
+    except (OSError, UnicodeDecodeError):
+        return None
+
+
+def filter_by_domain(files: list[tuple[str, Path]], domain: str) -> list[tuple[str, Path]]:
+    """Filter memory files to those tagged with a specific domain."""
+    result = []
+    for mem_type, filepath in files:
+        file_domain = get_file_domain(filepath)
+        if file_domain == domain:
+            result.append((mem_type, filepath))
+        elif mem_type in ("episodic", "episodic/archive") and file_domain is None:
+            # Episodic files may contain mixed-domain entries — include for entry-level filtering
+            content = filepath.read_text()
+            if f"**Domain**: {domain}" in content:
+                result.append((mem_type, filepath))
+    return result
+
+
 def format_file_summary(mem_type: str, filepath: Path, max_preview: int = 80) -> str:
     """Format a one-line summary of a memory file."""
     content = filepath.read_text().strip()
@@ -105,6 +130,8 @@ def format_file_summary(mem_type: str, filepath: Path, max_preview: int = 80) ->
 def cmd_list(args):
     """List all memories."""
     files = get_memory_files(args.type)
+    if args.domain:
+        files = filter_by_domain(files, args.domain)
 
     if not files:
         print("No memories found.")
@@ -138,6 +165,8 @@ def cmd_forget(args):
         sys.exit(1)
 
     files = get_memory_files(args.type)
+    if args.domain:
+        files = filter_by_domain(files, args.domain)
     to_delete: list[tuple[str, Path]] = []
     to_edit: list[tuple[str, Path, str]] = []  # (type, path, query)
 
@@ -231,11 +260,13 @@ def main():
     # list
     ls = sub.add_parser("list", help="List all memories")
     ls.add_argument("--type", choices=MEMORY_TYPES, help="Filter by memory type")
+    ls.add_argument("--domain", help="Filter by domain tag")
     ls.add_argument("--search", help="Search for keyword across memories")
 
     # forget
     fg = sub.add_parser("forget", help="Selectively forget memories")
     fg.add_argument("--type", choices=MEMORY_TYPES, help="Filter by memory type")
+    fg.add_argument("--domain", help="Filter by domain tag")
     fg.add_argument("--file", help="Delete a specific file by name")
     fg.add_argument("--search", help="Delete entries matching keyword")
     fg.add_argument("--before", help="Delete episodic files before date (YYYY-MM-DD)")

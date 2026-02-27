@@ -1,4 +1,31 @@
+# OS
+.DS_Store
+
+# Claude / Gemini local state
+.claude/
+.gemini/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.log
+bot/*.log
+
+# Data
+data/*.db
+data/*.db-shm
+data/*.db-wal
+data/*.json
+data/output/
+
 # Memory contents (personal data, stays local)
+memory/index.md
 memory/semantic/*.md
 memory/episodic/*.md
 memory/episodic/archive/
@@ -8,23 +35,15 @@ memory/procedural/*.md
 !memory/**/_template.md
 !memory/**/.gitkeep
 
-# Environment
-.env
-.env.*
-
-# Python
-__pycache__/
-*.pyc
-.venv/
-
-# Data
-data/*.db
-data/*.json
-data/output/
+# Private extensions (secret-mode features, not for public repo)
+tools/applyops/jobs_cli.py
+tools/applyops/validate.py
+tools/applyops/templates/
+tools/applyops/routes/jobs.py
+templates/jobs/
+flows/email_summary.py
+flows/cv_experiment.py
 
 # Personal / PII
 source_data/
 *.pdf
-
-# OS
-.DS_Store

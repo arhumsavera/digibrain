@@ -11,22 +11,23 @@ import typer
 
 from . import db
 
-app = typer.Typer(help="ApplyOps — local job application tracker", no_args_is_help=True)
-company_app = typer.Typer(help="Manage companies", no_args_is_help=True)
-job_app = typer.Typer(help="Manage jobs", no_args_is_help=True)
-resume_app = typer.Typer(help="Manage resumes", no_args_is_help=True)
-app_app = typer.Typer(help="Manage applications", no_args_is_help=True)
-email_app = typer.Typer(help="Track email events", no_args_is_help=True)
-match_app = typer.Typer(help="Resume-job match analysis", no_args_is_help=True)
-log_app = typer.Typer(help="Agent audit log", no_args_is_help=True)
+app = typer.Typer(help="ApplyOps — agent data store and memory CLI", no_args_is_help=True)
+log_app    = typer.Typer(help="Agent audit log", no_args_is_help=True)
+flows_app  = typer.Typer(help="Manage Prefect scheduled flows", no_args_is_help=True)
+domain_app = typer.Typer(help="Manage domains", no_args_is_help=True)
+item_app   = typer.Typer(help="Generic item store", no_args_is_help=True)
 
-app.add_typer(company_app, name="company")
-app.add_typer(job_app, name="job")
-app.add_typer(resume_app, name="resume")
-app.add_typer(app_app, name="app")
-app.add_typer(email_app, name="email")
-app.add_typer(match_app, name="match")
-app.add_typer(log_app, name="log")
+app.add_typer(log_app,    name="log")
+app.add_typer(flows_app,  name="flows")
+app.add_typer(domain_app, name="domain")
+app.add_typer(item_app,   name="item")
+
+# Optional private extension: job/resume/application tracking
+try:
+    from .jobs_cli import register as _register_jobs
+    _register_jobs(app)
+except ImportError:
+    pass
 
 
 def _out(data, as_json: bool = False):
@@ -45,537 +46,12 @@ def _date(dt_str: str | None) -> str:
     return dt_str[:10] if dt_str else "—"
 
 
-# --- Formatters ---
-
-def fmt_company(c: dict) -> str:
-    lines = [f"[{c['id']}] {c['name']}"]
-    if c.get("url"):
-        lines.append(f"  URL: {c['url']}")
-    if c.get("description"):
-        lines.append(f"  {c['description']}")
-    lines.append(f"  Created: {_date(c['created_at'])}")
-    return "\n".join(lines)
-
-
-def fmt_job(j: dict) -> str:
-    label = j.get("company_name") or "No company"
-    lines = [f"[{j['id']}] {label} — {j['title']}"]
-    lines.append(f"  Status: {j['status']} | Source: {j.get('source') or '—'}")
-    if j.get("url"):
-        lines.append(f"  URL: {j['url']}")
-    if j.get("skills"):
-        lines.append(f"  Skills: {j['skills']}")
-    if j.get("notes"):
-        lines.append(f"  Notes: {j['notes']}")
-    lines.append(f"  Created: {_date(j['created_at'])}")
-    return "\n".join(lines)
-
-
-def fmt_resume(r: dict) -> str:
-    lines = [f"[{r['id']}] {r['name']}"]
-    if r.get("tailored_for_job_id"):
-        lines.append(f"  Tailored for job: {r['tailored_for_job_id']}")
-    preview = (r.get("content") or "")[:100]
-    if preview:
-        lines.append(f"  Preview: {preview}...")
-    lines.append(f"  Created: {_date(r['created_at'])}")
-    return "\n".join(lines)
-
-
-def fmt_app(a: dict) -> str:
-    job_label = a.get("job_title") or a["job_id"]
-    company = a.get("company_name") or ""
-    if company:
-        job_label = f"{company} — {job_label}"
-    lines = [f"[{a['id']}] {job_label}"]
-    lines.append(f"  Status: {a['status']}")
-    if a.get("applied_at"):
-        lines.append(f"  Applied: {_date(a['applied_at'])}")
-    if a.get("notes"):
-        lines.append(f"  Notes: {a['notes']}")
-    lines.append(f"  Created: {_date(a['created_at'])}")
-    return "\n".join(lines)
-
-
-def fmt_email(e: dict) -> str:
-    lines = [f"[{e['id']}] {e.get('sender') or '—'}"]
-    lines.append(f"  Subject: {e.get('subject') or '—'}")
-    if e.get("body_preview"):
-        lines.append(f"  Preview: {e['body_preview'][:80]}...")
-    if e.get("job_id"):
-        lines.append(f"  Linked job: {e['job_id']}")
-    lines.append(f"  Created: {_date(e['created_at'])}")
-    return "\n".join(lines)
-
-
 def fmt_log(l: dict) -> str:
     return (
         f"[{l['id'][:8]}] {_date(l['created_at'])} | "
         f"{l.get('agent') or '—'} | {l.get('action') or '—'} | "
         f"{l.get('entity_type') or '—'}:{l.get('entity_id') or '—'}"
     )
-
-
-# --- Company ---
-
-@company_app.command("add")
-def company_add(
-    name: str = typer.Argument(help="Company name"),
-    url: Optional[str] = typer.Option(None, help="Company URL"),
-    description: Optional[str] = typer.Option(None, help="Description"),
-):
-    """Add a company."""
-    c = db.company_add(name, url=url, description=description)
-    print(f"Created company:\n{fmt_company(c)}")
-
-
-@company_app.command("list")
-def company_list(
-    as_json: bool = typer.Option(False, "--json", help="JSON output"),
-):
-    """List all companies."""
-    companies = db.company_list()
-    if not companies:
-        print("No companies found.")
-        return
-    _out([fmt_company(c) for c in companies] if not as_json else companies, as_json)
-
-
-@company_app.command("show")
-def company_show(
-    id: str = typer.Argument(help="Company ID or name"),
-    as_json: bool = typer.Option(False, "--json", help="JSON output"),
-):
-    """Show a company by ID or name."""
-    c = db.company_find(id)
-    if not c:
-        print(f"Company not found: {id}")
-        raise typer.Exit(1)
-    _out(c if as_json else fmt_company(c), as_json)
-
-
-# --- Job ---
-
-@job_app.command("add")
-def job_add(
-    title: str = typer.Option(..., help="Job title"),
-    company: Optional[str] = typer.Option(None, help="Company name (auto-created if new)"),
-    url: Optional[str] = typer.Option(None, help="Job URL"),
-    source: Optional[str] = typer.Option(None, help="Source: email, manual, web"),
-    description: Optional[str] = typer.Option(None, help="Job description"),
-):
-    """Add a job listing."""
-    j = db.job_add(title=title, company=company, url=url, source=source, description=description)
-    print(f"Created job:\n{fmt_job(j)}")
-
-
-@job_app.command("list")
-def job_list(
-    status: Optional[str] = typer.Option(None, help="Filter by status"),
-    company: Optional[str] = typer.Option(None, help="Filter by company"),
-    as_json: bool = typer.Option(False, "--json", help="JSON output"),
-):
-    """List jobs."""
-    jobs = db.job_list(status=status, company=company)
-    if not jobs:
-        print("No jobs found.")
-        return
-    _out([fmt_job(j) for j in jobs] if not as_json else jobs, as_json)
-
-
-@job_app.command("show")
-def job_show(
-    id: str = typer.Argument(help="Job ID"),
-    as_json: bool = typer.Option(False, "--json", help="JSON output"),
-):
-    """Show a job by ID."""
-    j = db.job_get(id)
-    if not j:
-        print(f"Job not found: {id}")
-        raise typer.Exit(1)
-    if as_json:
-        _out(j, True)
-    else:
-        print(fmt_job(j))
-        if j.get("description"):
-            print(f"\nDescription:\n{j['description']}")
-
-
-@job_app.command("update")
-def job_update(
-    id: str = typer.Argument(help="Job ID"),
-    status: Optional[str] = typer.Option(None, help="New status"),
-    notes: Optional[str] = typer.Option(None, help="Notes"),
-    skills: Optional[str] = typer.Option(None, help="Skills JSON array"),
-    url: Optional[str] = typer.Option(None, help="Job URL"),
-):
-    """Update a job."""
-    j = db.job_update(id, status=status, notes=notes, skills=skills, url=url)
-    if not j:
-        print(f"Job not found: {id}")
-        raise typer.Exit(1)
-    print(f"Updated job:\n{fmt_job(j)}")
-
-
-@job_app.command("remove")
-def job_remove(id: str = typer.Argument(help="Job ID")):
-    """Remove a job."""
-    if db.job_remove(id):
-        print(f"Removed job {id}")
-    else:
-        print(f"Job not found: {id}")
-        raise typer.Exit(1)
-
-
-# --- Resume ---
-
-@resume_app.command("add")
-def resume_add(
-    name: str = typer.Option(..., help="Resume name, e.g. 'base', 'ml-focused'"),
-    file: Optional[Path] = typer.Option(None, help="Path to markdown file"),
-    content: Optional[str] = typer.Option(None, help="Resume content as string"),
-):
-    """Add a resume version."""
-    text = content
-    if file:
-        text = file.read_text()
-    if not text:
-        print("Provide --content or --file")
-        raise typer.Exit(1)
-    r = db.resume_add(name=name, content=text)
-    print(f"Created resume:\n{fmt_resume(r)}")
-
-
-@resume_app.command("list")
-def resume_list(
-    as_json: bool = typer.Option(False, "--json", help="JSON output"),
-):
-    """List all resumes."""
-    resumes = db.resume_list()
-    if not resumes:
-        print("No resumes found.")
-        return
-    _out([fmt_resume(r) for r in resumes] if not as_json else resumes, as_json)
-
-
-@resume_app.command("show")
-def resume_show(
-    id: str = typer.Argument(help="Resume ID or name"),
-    as_json: bool = typer.Option(False, "--json", help="JSON output"),
-    full: bool = typer.Option(False, "--full", help="Show full content"),
-):
-    """Show a resume by ID or name."""
-    r = db.resume_find(id)
-    if not r:
-        print(f"Resume not found: {id}")
-        raise typer.Exit(1)
-    if as_json:
-        _out(r, True)
-    else:
-        print(fmt_resume(r))
-        if full:
-            print(f"\nContent:\n{r['content']}")
-
-
-@resume_app.command("render")
-def resume_render(
-    id: str = typer.Argument(help="Resume ID or name"),
-    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Output PDF path"),
-    template: str = typer.Option("resume", help="Template name (default: resume)"),
-):
-    """Render a resume to PDF using Typst.
-
-    Resume content must be stored as JSON matching the template schema.
-    """
-    import shutil
-    import subprocess
-    import tempfile
-
-    r = db.resume_find(id)
-    if not r:
-        print(f"Resume not found: {id}")
-        raise typer.Exit(1)
-
-    # Validate content is JSON
-    try:
-        json.loads(r["content"])
-    except (json.JSONDecodeError, TypeError):
-        print("Resume content must be JSON for rendering. Use 'resume show <id> --full' to check.")
-        raise typer.Exit(1)
-
-    templates_dir = Path(__file__).parent / "templates"
-    template_file = templates_dir / f"{template}.typ"
-    if not template_file.exists():
-        print(f"Template not found: {template_file}")
-        raise typer.Exit(1)
-
-    # Check typst is installed
-    if not shutil.which("typst"):
-        print("typst not found. Install with: brew install typst")
-        raise typer.Exit(1)
-
-    # Write data to temp dir alongside a copy of the template
-    with tempfile.TemporaryDirectory() as tmpdir:
-        tmp = Path(tmpdir)
-        data_file = tmp / "data.json"
-        data_file.write_text(r["content"])
-        typ_file = tmp / f"{template}.typ"
-        typ_file.write_text(template_file.read_text())
-
-        # Default output: data/output/{name}_{id_short}.pdf
-        if output:
-            out_path = output
-        else:
-            output_dir = Path(__file__).parent.parent.parent / "data" / "output"
-            output_dir.mkdir(parents=True, exist_ok=True)
-            out_path = output_dir / f"{r['name']}_{r['id'][:8]}.pdf"
-        pdf_tmp = tmp / "output.pdf"
-
-        result = subprocess.run(
-            ["typst", "compile", str(typ_file), str(pdf_tmp)],
-            capture_output=True, text=True,
-        )
-
-        if result.returncode != 0:
-            print(f"Typst error:\n{result.stderr}")
-            raise typer.Exit(1)
-
-        # Copy to final destination
-        shutil.copy2(str(pdf_tmp), str(out_path))
-
-    # Store PDF path in DB
-    resolved = str(out_path.resolve())
-    db.resume_set_pdf(r["id"], resolved)
-    print(f"Rendered: {resolved} ({out_path.stat().st_size // 1024}KB)")
-
-
-@resume_app.command("validate")
-def resume_validate(
-    id: str = typer.Argument(help="Tailored resume ID or name to validate"),
-    base: str = typer.Option("base", help="Base resume ID or name to compare against"),
-    as_json: bool = typer.Option(False, "--json", help="JSON output"),
-):
-    """Validate a tailored resume against the base — catch hallucinations.
-
-    Compares entities (companies, titles, skills, dates, metrics) and flags
-    anything in the tailored version that doesn't exist in the base.
-    Also checks text quality (weak verbs, first person, bullet length).
-    """
-    from .validate import validate_against_base, format_validation
-
-    tailored = db.resume_find(id)
-    if not tailored:
-        print(f"Resume not found: {id}")
-        raise typer.Exit(1)
-
-    base_resume = db.resume_find(base)
-    if not base_resume:
-        print(f"Base resume not found: {base}")
-        raise typer.Exit(1)
-
-    # Both must be JSON
-    for label, r in [("Tailored", tailored), ("Base", base_resume)]:
-        try:
-            json.loads(r["content"])
-        except (json.JSONDecodeError, TypeError):
-            print(f"{label} resume content must be JSON. Check: resume show {r['name']} --full")
-            raise typer.Exit(1)
-
-    result = validate_against_base(base_resume["content"], tailored["content"])
-
-    if as_json:
-        _out(result, True)
-    else:
-        print(f"Validating [{tailored['name']}] against [{base_resume['name']}]\n")
-        print(format_validation(result))
-
-
-# --- Application ---
-
-@app_app.command("add")
-def application_add(
-    job: str = typer.Option(..., help="Job ID"),
-    resume: Optional[str] = typer.Option(None, help="Resume ID"),
-):
-    """Create an application for a job."""
-    a = db.app_add(job_id=job, resume_id=resume)
-    print(f"Created application:\n{fmt_app(a)}")
-
-
-@app_app.command("list")
-def application_list(
-    status: Optional[str] = typer.Option(None, help="Filter by status"),
-    as_json: bool = typer.Option(False, "--json", help="JSON output"),
-):
-    """List applications."""
-    apps = db.app_list(status=status)
-    if not apps:
-        print("No applications found.")
-        return
-    _out([fmt_app(a) for a in apps] if not as_json else apps, as_json)
-
-
-@app_app.command("show")
-def application_show(
-    id: str = typer.Argument(help="Application ID"),
-    as_json: bool = typer.Option(False, "--json", help="JSON output"),
-):
-    """Show an application."""
-    a = db.app_get(id)
-    if not a:
-        print(f"Application not found: {id}")
-        raise typer.Exit(1)
-    _out(a if as_json else fmt_app(a), as_json)
-
-
-@app_app.command("update")
-def application_update(
-    id: str = typer.Argument(help="Application ID"),
-    status: Optional[str] = typer.Option(None, help="New status"),
-    notes: Optional[str] = typer.Option(None, help="Notes"),
-):
-    """Update an application."""
-    a = db.app_update(id, status=status, notes=notes)
-    if not a:
-        print(f"Application not found: {id}")
-        raise typer.Exit(1)
-    print(f"Updated application:\n{fmt_app(a)}")
-
-
-@app_app.command("remove")
-def application_remove(id: str = typer.Argument(help="Application ID")):
-    """Remove an application."""
-    if db.app_remove(id):
-        print(f"Removed application {id}")
-    else:
-        print(f"Application not found: {id}")
-        raise typer.Exit(1)
-
-
-# --- Email ---
-
-@email_app.command("add")
-def email_add(
-    sender: Optional[str] = typer.Option(None, help="Sender address"),
-    subject: Optional[str] = typer.Option(None, help="Email subject"),
-    body: Optional[str] = typer.Option(None, help="Email body text"),
-    job: Optional[str] = typer.Option(None, help="Linked job ID"),
-):
-    """Add an email entry."""
-    e = db.email_add(sender=sender, subject=subject, body=body, job_id=job)
-    print(f"Created email entry:\n{fmt_email(e)}")
-
-
-@email_app.command("list")
-def email_list(
-    limit: int = typer.Option(20, help="Max entries"),
-    as_json: bool = typer.Option(False, "--json", help="JSON output"),
-):
-    """List tracked emails."""
-    emails = db.email_list(limit=limit)
-    if not emails:
-        print("No email entries found.")
-        return
-    _out([fmt_email(e) for e in emails] if not as_json else emails, as_json)
-
-
-# --- Match ---
-
-def fmt_match(m: dict) -> str:
-    job_label = m.get("company_name") or ""
-    if job_label:
-        job_label = f"{job_label} — "
-    job_label += m.get("job_title") or m["job_id"]
-    score = f"{m['score']}%" if m.get("score") is not None else "—"
-    lines = [f"[{m['id']}] {job_label} (resume: {m.get('resume_name') or m['resume_id']})"]
-    lines.append(f"  Score: {score}")
-    if m.get("strong_matches"):
-        lines.append(f"  Strong: {m['strong_matches']}")
-    if m.get("gaps"):
-        lines.append(f"  Gaps: {m['gaps']}")
-    if m.get("red_flags"):
-        lines.append(f"  Red flags: {m['red_flags']}")
-    if m.get("notes"):
-        lines.append(f"  Notes: {m['notes']}")
-    lines.append(f"  Created: {_date(m['created_at'])}")
-    return "\n".join(lines)
-
-
-@match_app.command("add")
-def match_add(
-    job: str = typer.Option(..., help="Job ID"),
-    resume: str = typer.Option(..., help="Resume ID or name"),
-    score: Optional[int] = typer.Option(None, help="Match score 0-100"),
-    strong_matches: Optional[str] = typer.Option(None, "--strong", help="JSON array of strong matches"),
-    gaps: Optional[str] = typer.Option(None, help="JSON array of gaps"),
-    red_flags: Optional[str] = typer.Option(None, "--red-flags", help="JSON array of red flags"),
-    notes: Optional[str] = typer.Option(None, help="Analysis notes"),
-):
-    """Save a match analysis result."""
-    # Resolve resume by name if needed
-    r = db.resume_find(resume)
-    resume_id = r["id"] if r else resume
-    m = db.match_add(
-        job_id=job, resume_id=resume_id, score=score,
-        strong_matches=strong_matches, gaps=gaps,
-        red_flags=red_flags, notes=notes,
-    )
-    print(f"Created match:\n{fmt_match(m)}")
-
-
-@match_app.command("list")
-def match_list(
-    job: Optional[str] = typer.Option(None, help="Filter by job ID"),
-    min_score: Optional[int] = typer.Option(None, "--min-score", help="Minimum match score"),
-    as_json: bool = typer.Option(False, "--json", help="JSON output"),
-):
-    """List match analyses."""
-    matches = db.match_list(job_id=job, min_score=min_score)
-    if not matches:
-        print("No match analyses found.")
-        return
-    _out([fmt_match(m) for m in matches] if not as_json else matches, as_json)
-
-
-@match_app.command("show")
-def match_show(
-    id: str = typer.Argument(help="Match ID"),
-    as_json: bool = typer.Option(False, "--json", help="JSON output"),
-):
-    """Show a match analysis."""
-    m = db.match_get(id)
-    if not m:
-        print(f"Match not found: {id}")
-        raise typer.Exit(1)
-    _out(m if as_json else fmt_match(m), as_json)
-
-
-# --- Stats ---
-
-@app.command("stats")
-def stats(
-    as_json: bool = typer.Option(False, "--json", help="JSON output"),
-):
-    """Dashboard stats."""
-    s = db.get_stats()
-    if as_json:
-        _out(s, True)
-        return
-    print("=== ApplyOps Dashboard ===\n")
-    print(f"Companies:    {s['companies']}")
-    print(f"Jobs:         {s['jobs']}")
-    print(f"Resumes:      {s['resumes']}")
-    print(f"Applications: {s['applications']}")
-    print(f"Emails:       {s['emails']}")
-    print(f"Matches:      {s['matches']}")
-    if s["jobs_by_status"]:
-        print("\nJobs by status:")
-        for st, c in s["jobs_by_status"].items():
-            print(f"  {st}: {c}")
-    if s["apps_by_status"]:
-        print("\nApplications by status:")
-        for st, c in s["apps_by_status"].items():
-            print(f"  {st}: {c}")
 
 
 # --- Log ---
@@ -612,8 +88,308 @@ def log_list(
 @app.command("serve")
 def serve(
     port: int = typer.Option(8000, help="Port"),
-    host: str = typer.Option("127.0.0.1", help="Host"),
+    host: str = typer.Option("0.0.0.0", help="Host"),
 ):
     """Start the web dashboard."""
     from .web import run_server
     run_server(host=host, port=port)
+
+
+# --- Domain ---
+
+def fmt_domain(d: dict) -> str:
+    icon = d.get("icon") or ""
+    lines = [f"[{d['id']}] {icon} {d['name']}".strip()]
+    if d.get("description"):
+        lines.append(f"  {d['description']}")
+    if d.get("keywords"):
+        try:
+            kws = json.loads(d["keywords"])
+            lines.append(f"  Keywords: {', '.join(kws)}")
+        except (json.JSONDecodeError, TypeError):
+            pass
+    lines.append(f"  Created: {_date(d['created_at'])}")
+    return "\n".join(lines)
+
+
+@domain_app.command("add")
+def domain_add(
+    name: str = typer.Argument(help="Domain name (e.g. fitness, todos, reading)"),
+    description: Optional[str] = typer.Option(None, help="Description"),
+    keywords: Optional[str] = typer.Option(None, help="JSON array of trigger keywords"),
+    instructions: Optional[str] = typer.Option(None, help="Agent instructions (markdown)"),
+    schema: Optional[str] = typer.Option(None, help="JSON Schema for item data validation"),
+    icon: Optional[str] = typer.Option(None, help="Emoji icon"),
+):
+    """Create a new domain."""
+    d = db.domain_add(
+        name=name, description=description, keywords=keywords,
+        instructions=instructions, schema=schema, icon=icon,
+    )
+    print(f"Created domain:\n{fmt_domain(d)}")
+
+
+@domain_app.command("list")
+def domain_list(
+    as_json: bool = typer.Option(False, "--json", help="JSON output"),
+):
+    """List all domains."""
+    domains = db.domain_list()
+    if not domains:
+        print("No domains found.")
+        return
+    _out([fmt_domain(d) for d in domains] if not as_json else domains, as_json)
+
+
+@domain_app.command("show")
+def domain_show(
+    id: str = typer.Argument(help="Domain ID or name"),
+    as_json: bool = typer.Option(False, "--json", help="JSON output"),
+):
+    """Show a domain and its instructions."""
+    d = db.domain_find(id)
+    if not d:
+        print(f"Domain not found: {id}")
+        raise typer.Exit(1)
+    if as_json:
+        _out(d, True)
+    else:
+        print(fmt_domain(d))
+        if d.get("instructions"):
+            print(f"\nInstructions:\n{d['instructions']}")
+
+
+@domain_app.command("update")
+def domain_update(
+    id: str = typer.Argument(help="Domain ID or name"),
+    description: Optional[str] = typer.Option(None, help="Description"),
+    keywords: Optional[str] = typer.Option(None, help="JSON array of trigger keywords"),
+    instructions: Optional[str] = typer.Option(None, help="Agent instructions"),
+    schema: Optional[str] = typer.Option(None, help="JSON Schema for item data"),
+    icon: Optional[str] = typer.Option(None, help="Emoji icon"),
+):
+    """Update a domain."""
+    d = db.domain_update(
+        id, description=description, keywords=keywords,
+        instructions=instructions, schema=schema, icon=icon,
+    )
+    if not d:
+        print(f"Domain not found: {id}")
+        raise typer.Exit(1)
+    print(f"Updated domain:\n{fmt_domain(d)}")
+
+
+@domain_app.command("remove")
+def domain_remove(id: str = typer.Argument(help="Domain ID or name")):
+    """Remove a domain and all its items."""
+    if db.domain_remove(id):
+        print(f"Removed domain {id} and all its items")
+    else:
+        print(f"Domain not found: {id}")
+        raise typer.Exit(1)
+
+
+@domain_app.command("detect")
+def domain_detect(
+    message: str = typer.Argument(help="Message to detect domain from"),
+):
+    """Detect which domain a message belongs to."""
+    results = db.detect_domain(message)
+    if not results:
+        print("No domain matched.")
+        print("\nCreate one with: uv run applyops domain add <name> --keywords '[...]'")
+        return
+    for d in results:
+        matched = ", ".join(d.get("_matched", []))
+        print(f"  {d['name']} (score: {d['_score']}, matched: {matched})")
+
+
+# --- Item ---
+
+def fmt_item(i: dict) -> str:
+    domain = i.get("domain_name") or "?"
+    lines = [f"[{i['id']}] {domain}/{i['type']}: {i['title']}"]
+    lines.append(f"  Status: {i['status']}")
+    if i.get("priority") is not None:
+        lines.append(f"  Priority: {i['priority']}")
+    if i.get("due_at"):
+        lines.append(f"  Due: {i['due_at']}")
+    if i.get("tags"):
+        try:
+            tags = json.loads(i["tags"])
+            lines.append(f"  Tags: {', '.join(tags)}")
+        except (json.JSONDecodeError, TypeError):
+            pass
+    if i.get("data"):
+        preview = i["data"][:120]
+        if len(i["data"]) > 120:
+            preview += "..."
+        lines.append(f"  Data: {preview}")
+    lines.append(f"  Created: {_date(i['created_at'])}")
+    return "\n".join(lines)
+
+
+@item_app.command("add")
+def item_add(
+    domain: str = typer.Option(..., help="Domain name or ID"),
+    title: str = typer.Option(..., help="Item title"),
+    type: str = typer.Option("note", help="Item type (e.g. workout, todo, book)"),
+    data: Optional[str] = typer.Option(None, help="JSON data blob"),
+    tags: Optional[str] = typer.Option(None, help="JSON array of tags"),
+    status: str = typer.Option("active", help="Status: active, done, archived"),
+    due: Optional[str] = typer.Option(None, help="Due date (YYYY-MM-DD)"),
+    priority: Optional[int] = typer.Option(None, help="Priority (1=highest)"),
+):
+    """Add an item to a domain."""
+    try:
+        i = db.item_add(
+            domain=domain, title=title, type=type, data=data,
+            tags=tags, status=status, priority=priority, due_at=due,
+        )
+        print(f"Created item:\n{fmt_item(i)}")
+    except ValueError as e:
+        print(str(e))
+        raise typer.Exit(1)
+
+
+@item_app.command("list")
+def item_list(
+    domain: Optional[str] = typer.Option(None, help="Domain name or ID"),
+    type: Optional[str] = typer.Option(None, help="Filter by type"),
+    status: Optional[str] = typer.Option(None, help="Filter by status"),
+    sort: str = typer.Option("created", help="Sort: created, updated, due, priority"),
+    limit: int = typer.Option(50, help="Max items"),
+    as_json: bool = typer.Option(False, "--json", help="JSON output"),
+):
+    """List items, optionally filtered by domain/type/status."""
+    items = db.item_list(domain=domain, type=type, status=status, sort=sort, limit=limit)
+    if not items:
+        print("No items found.")
+        return
+    _out([fmt_item(i) for i in items] if not as_json else items, as_json)
+
+
+@item_app.command("show")
+def item_show(
+    id: str = typer.Argument(help="Item ID"),
+    as_json: bool = typer.Option(False, "--json", help="JSON output"),
+):
+    """Show an item."""
+    i = db.item_get(id)
+    if not i:
+        print(f"Item not found: {id}")
+        raise typer.Exit(1)
+    if as_json:
+        _out(i, True)
+    else:
+        print(fmt_item(i))
+        if i.get("data"):
+            print(f"\nData:\n{i['data']}")
+
+
+@item_app.command("update")
+def item_update(
+    id: str = typer.Argument(help="Item ID"),
+    title: Optional[str] = typer.Option(None, help="New title"),
+    type: Optional[str] = typer.Option(None, help="New type"),
+    status: Optional[str] = typer.Option(None, help="New status"),
+    data: Optional[str] = typer.Option(None, help="New JSON data"),
+    tags: Optional[str] = typer.Option(None, help="New JSON tags"),
+    due: Optional[str] = typer.Option(None, help="New due date"),
+    priority: Optional[int] = typer.Option(None, help="New priority"),
+):
+    """Update an item."""
+    i = db.item_update(id, title=title, type=type, status=status,
+                       data=data, tags=tags, due_at=due, priority=priority)
+    if not i:
+        print(f"Item not found: {id}")
+        raise typer.Exit(1)
+    print(f"Updated item:\n{fmt_item(i)}")
+
+
+@item_app.command("remove")
+def item_remove(id: str = typer.Argument(help="Item ID")):
+    """Remove an item."""
+    if db.item_remove(id):
+        print(f"Removed item {id}")
+    else:
+        print(f"Item not found: {id}")
+        raise typer.Exit(1)
+
+
+@item_app.command("search")
+def item_search(
+    query: str = typer.Argument(help="Search query"),
+    domain: Optional[str] = typer.Option(None, help="Scope to domain"),
+    limit: int = typer.Option(20, help="Max results"),
+    as_json: bool = typer.Option(False, "--json", help="JSON output"),
+):
+    """Full-text search across items."""
+    items = db.item_search(query=query, domain=domain, limit=limit)
+    if not items:
+        print("No matches found.")
+        return
+    _out([fmt_item(i) for i in items] if not as_json else items, as_json)
+
+
+@item_app.command("stats")
+def item_stats(
+    domain: str = typer.Argument(help="Domain name or ID"),
+    as_json: bool = typer.Option(False, "--json", help="JSON output"),
+):
+    """Show item stats for a domain."""
+    try:
+        s = db.item_stats(domain)
+    except ValueError as e:
+        print(str(e))
+        raise typer.Exit(1)
+    if as_json:
+        _out(s, True)
+        return
+    print(f"=== {s['domain']} ===\n")
+    print(f"Total items: {s['total']}")
+    if s["by_type"]:
+        print("\nBy type:")
+        for t, c in s["by_type"].items():
+            print(f"  {t}: {c}")
+    if s["by_status"]:
+        print("\nBy status:")
+        for st, c in s["by_status"].items():
+            print(f"  {st}: {c}")
+
+
+# --- Flows ---
+
+@flows_app.command("deploy")
+def flows_deploy():
+    """Deploy all flows defined in prefect.yaml."""
+    import subprocess
+    result = subprocess.run(["prefect", "deploy", "--all"], check=False)
+    raise typer.Exit(result.returncode)
+
+
+@flows_app.command("run")
+def flows_run(
+    name: str = typer.Argument(help="Deployment name (e.g. daily-email-summary)"),
+    param: Optional[list[str]] = typer.Option(
+        None, "--param", "-p",
+        help="Flow parameters as key=value pairs (e.g. --param prompt='hello')",
+    ),
+):
+    """Trigger an immediate flow run by deployment name."""
+    import subprocess
+    cmd = ["prefect", "deployment", "run", name]
+    for p in (param or []):
+        cmd.extend(["--param", p])
+    result = subprocess.run(cmd, check=False)
+    raise typer.Exit(result.returncode)
+
+
+@flows_app.command("ui")
+def flows_ui():
+    """Open the Prefect UI in the default browser (http://localhost:4200)."""
+    import webbrowser
+    url = "http://localhost:4200"
+    print(f"Opening Prefect UI at {url}")
+    print("Make sure the server is running: prefect server start")
+    webbrowser.open(url)

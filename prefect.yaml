@@ -1,0 +1,25 @@
+name: digibrain
+prefect-version: "3.0.0"
+
+pull:
+  - prefect.deployments.steps.set_working_directory:
+      directory: "."  # run `prefect deploy` from the repo root
+
+deployments:
+  - name: daily-email-summary
+    entrypoint: flows/email_summary.py:email_summary_flow
+    schedules:
+      - cron: "0 8 * * *"
+        timezone: "America/Los_Angeles"
+    work_pool:
+      name: local
+      work_queue_name: default
+
+  - name: weekly-consolidation
+    entrypoint: flows/consolidate.py:consolidate_flow
+    schedules:
+      - cron: "0 9 * * 0"
+        timezone: "America/Los_Angeles"
+    work_pool:
+      name: local
+      work_queue_name: default

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Edit {{ filename }} - Memory{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="/memory/view/{{ memory_type }}/{{ filename }}" style="color: #58a6ff;">← Cancel Edit</a>
+</div>
+
+<h1>✏️ Edit {{ filename }}</h1>
+<p style="color: #8b949e; margin-bottom: 1rem;">Type: {{ memory_type }}</p>
+
+<form method="POST" action="/memory/edit/{{ memory_type }}/{{ filename }}">
+    <div class="card" style="padding: 0;">
+        <textarea 
+            name="content" 
+            style="width: 100%; min-height: 500px; padding: 1.5rem; background: #0d1117; border: none; color: #c9d1d9; font-family: 'Monaco', 'Menlo', monospace; font-size: 0.9rem; line-height: 1.6; resize: vertical;"
+            spellcheck="false"
+        >{{ content }}</textarea>
+    </div>
+    
+    <div style="margin-top: 1rem; display: flex; gap: 1rem;">
+        <button type="submit" class="btn">💾 Save Changes</button>
+        <a href="/memory/view/{{ memory_type }}/{{ filename }}" class="btn btn-secondary" style="background: #6e7681;">Cancel</a>
+    </div>
+</form>
+{% endblock %}

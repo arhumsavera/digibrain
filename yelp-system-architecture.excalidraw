@@ -1,0 +1,1166 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "system-design",
+  "elements": [
+    {
+      "type": "text",
+      "id": "title",
+      "x": 350,
+      "y": 20,
+      "text": "Yelp System Architecture",
+      "fontSize": 28,
+      "strokeColor": "#1e1e1e"
+    },
+    {
+      "type": "text",
+      "id": "subtitle",
+      "x": 380,
+      "y": 55,
+      "text": "Distributed Microservices Design",
+      "fontSize": 16,
+      "strokeColor": "#757575"
+    },
+    {
+      "type": "rectangle",
+      "id": "zone1",
+      "x": 50,
+      "y": 90,
+      "width": 1100,
+      "height": 130,
+      "backgroundColor": "#dbe4ff",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#4a9eed",
+      "strokeWidth": 1,
+      "opacity": 35
+    },
+    {
+      "type": "text",
+      "id": "zone1Label",
+      "x": 60,
+      "y": 96,
+      "text": "Client Layer",
+      "fontSize": 16,
+      "strokeColor": "#2563eb"
+    },
+    {
+      "type": "rectangle",
+      "id": "webApp",
+      "x": 100,
+      "y": 125,
+      "width": 140,
+      "height": 60,
+      "backgroundColor": "#a5d8ff",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#2563eb",
+      "label": {
+        "text": "Web App\n(React)",
+        "fontSize": 14
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "mobileApp",
+      "x": 300,
+      "y": 125,
+      "width": 140,
+      "height": 60,
+      "backgroundColor": "#a5d8ff",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#2563eb",
+      "label": {
+        "text": "Mobile App\n(iOS/Android)",
+        "fontSize": 14
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "partnerApp",
+      "x": 500,
+      "y": 125,
+      "width": 140,
+      "height": 60,
+      "backgroundColor": "#a5d8ff",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#2563eb",
+      "label": {
+        "text": "Partner Portal\n(Next.js)",
+        "fontSize": 14
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "cdn",
+      "x": 750,
+      "y": 125,
+      "width": 140,
+      "height": 60,
+      "backgroundColor": "#fff3bf",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#f59e0b",
+      "label": {
+        "text": "CDN\n(CloudFront)",
+        "fontSize": 14
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "lb",
+      "x": 930,
+      "y": 125,
+      "width": 140,
+      "height": 60,
+      "backgroundColor": "#d0bfff",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#8b5cf6",
+      "label": {
+        "text": "Load Balancer\n(NGINX)",
+        "fontSize": 14
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "zone2",
+      "x": 50,
+      "y": 240,
+      "width": 1100,
+      "height": 100,
+      "backgroundColor": "#e5dbff",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#8b5cf6",
+      "strokeWidth": 1,
+      "opacity": 35
+    },
+    {
+      "type": "text",
+      "id": "zone2Label",
+      "x": 60,
+      "y": 246,
+      "text": "API Gateway Layer",
+      "fontSize": 16,
+      "strokeColor": "#7c3aed"
+    },
+    {
+      "type": "rectangle",
+      "id": "apiGw",
+      "x": 200,
+      "y": 270,
+      "width": 180,
+      "height": 50,
+      "backgroundColor": "#d0bfff",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#7c3aed",
+      "label": {
+        "text": "API Gateway\n(Kong/AWS API GW)",
+        "fontSize": 14
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "auth",
+      "x": 450,
+      "y": 270,
+      "width": 160,
+      "height": 50,
+      "backgroundColor": "#ffc9c9",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#dc2626",
+      "label": {
+        "text": "Auth Service\n(OAuth2/JWT)",
+        "fontSize": 14
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "rateLimit",
+      "x": 680,
+      "y": 270,
+      "width": 160,
+      "height": 50,
+      "backgroundColor": "#ffd8a8",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#ea580c",
+      "label": {
+        "text": "Rate Limiter\n(Redis)",
+        "fontSize": 14
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "graphql",
+      "x": 900,
+      "y": 270,
+      "width": 160,
+      "height": 50,
+      "backgroundColor": "#d0bfff",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#7c3aed",
+      "label": {
+        "text": "GraphQL\nGateway",
+        "fontSize": 14
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "zone3",
+      "x": 50,
+      "y": 360,
+      "width": 1100,
+      "height": 200,
+      "backgroundColor": "#d3f9d8",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#22c55e",
+      "strokeWidth": 1,
+      "opacity": 35
+    },
+    {
+      "type": "text",
+      "id": "zone3Label",
+      "x": 60,
+      "y": 366,
+      "text": "Microservices Layer",
+      "fontSize": 16,
+      "strokeColor": "#16a34a"
+    },
+    {
+      "type": "rectangle",
+      "id": "userSvc",
+      "x": 80,
+      "y": 400,
+      "width": 130,
+      "height": 50,
+      "backgroundColor": "#b2f2bb",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#16a34a",
+      "label": {
+        "text": "User Service",
+        "fontSize": 14
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "bizSvc",
+      "x": 240,
+      "y": 400,
+      "width": 130,
+      "height": 50,
+      "backgroundColor": "#b2f2bb",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#16a34a",
+      "label": {
+        "text": "Business\nService",
+        "fontSize": 14
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "reviewSvc",
+      "x": 400,
+      "y": 400,
+      "width": 130,
+      "height": 50,
+      "backgroundColor": "#b2f2bb",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#16a34a",
+      "label": {
+        "text": "Review Service",
+        "fontSize": 14
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "searchSvc",
+      "x": 560,
+      "y": 400,
+      "width": 130,
+      "height": 50,
+      "backgroundColor": "#b2f2bb",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#16a34a",
+      "label": {
+        "text": "Search Service",
+        "fontSize": 14
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "photoSvc",
+      "x": 720,
+      "y": 400,
+      "width": 130,
+      "height": 50,
+      "backgroundColor": "#b2f2bb",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#16a34a",
+      "label": {
+        "text": "Photo Service",
+        "fontSize": 14
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "bookingSvc",
+      "x": 880,
+      "y": 400,
+      "width": 130,
+      "height": 50,
+      "backgroundColor": "#b2f2bb",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#16a34a",
+      "label": {
+        "text": "Booking\nService",
+        "fontSize": 14
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "notifSvc",
+      "x": 1040,
+      "y": 400,
+      "width": 90,
+      "height": 50,
+      "backgroundColor": "#b2f2bb",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#16a34a",
+      "label": {
+        "text": "Notify",
+        "fontSize": 14
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "analyticsSvc",
+      "x": 150,
+      "y": 480,
+      "width": 130,
+      "height": 50,
+      "backgroundColor": "#eebefa",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#c026d3",
+      "label": {
+        "text": "Analytics\nService",
+        "fontSize": 14
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "recommendSvc",
+      "x": 320,
+      "y": 480,
+      "width": 150,
+      "height": 50,
+      "backgroundColor": "#eebefa",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#c026d3",
+      "label": {
+        "text": "Recommendation\n(ML)",
+        "fontSize": 14
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "geoSvc",
+      "x": 510,
+      "y": 480,
+      "width": 130,
+      "height": 50,
+      "backgroundColor": "#b2f2bb",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#16a34a",
+      "label": {
+        "text": "Geo Service",
+        "fontSize": 14
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "adSvc",
+      "x": 680,
+      "y": 480,
+      "width": 130,
+      "height": 50,
+      "backgroundColor": "#b2f2bb",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#16a34a",
+      "label": {
+        "text": "Ads Service",
+        "fontSize": 14
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "paymentSvc",
+      "x": 850,
+      "y": 480,
+      "width": 130,
+      "height": 50,
+      "backgroundColor": "#b2f2bb",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#16a34a",
+      "label": {
+        "text": "Payment\nService",
+        "fontSize": 14
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "zone4",
+      "x": 50,
+      "y": 580,
+      "width": 1100,
+      "height": 160,
+      "backgroundColor": "#c3fae8",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#06b6d4",
+      "strokeWidth": 1,
+      "opacity": 35
+    },
+    {
+      "type": "text",
+      "id": "zone4Label",
+      "x": 60,
+      "y": 586,
+      "text": "Data Layer",
+      "fontSize": 16,
+      "strokeColor": "#0891b2"
+    },
+    {
+      "type": "rectangle",
+      "id": "pgUsers",
+      "x": 80,
+      "y": 620,
+      "width": 100,
+      "height": 50,
+      "backgroundColor": "#a5d8ff",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#2563eb",
+      "label": {
+        "text": "PostgreSQL\n(Users)",
+        "fontSize": 12
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "pgBiz",
+      "x": 210,
+      "y": 620,
+      "width": 100,
+      "height": 50,
+      "backgroundColor": "#a5d8ff",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#2563eb",
+      "label": {
+        "text": "PostgreSQL\n(Business)",
+        "fontSize": 12
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "pgReviews",
+      "x": 340,
+      "y": 620,
+      "width": 100,
+      "height": 50,
+      "backgroundColor": "#a5d8ff",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#2563eb",
+      "label": {
+        "text": "PostgreSQL\n(Reviews)",
+        "fontSize": 12
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "elasticsearch",
+      "x": 480,
+      "y": 620,
+      "width": 120,
+      "height": 50,
+      "backgroundColor": "#d0bfff",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#7c3aed",
+      "label": {
+        "text": "Elasticsearch\n(Search Index)",
+        "fontSize": 12
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "redisCache",
+      "x": 630,
+      "y": 620,
+      "width": 100,
+      "height": 50,
+      "backgroundColor": "#ffd8a8",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#ea580c",
+      "label": {
+        "text": "Redis\n(Cache)",
+        "fontSize": 12
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "s3Photos",
+      "x": 760,
+      "y": 620,
+      "width": 100,
+      "height": 50,
+      "backgroundColor": "#b2f2bb",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#16a34a",
+      "label": {
+        "text": "S3\n(Photos)",
+        "fontSize": 12
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "kafka",
+      "x": 890,
+      "y": 620,
+      "width": 100,
+      "height": 50,
+      "backgroundColor": "#fff3bf",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#ca8a04",
+      "label": {
+        "text": "Kafka\n(Events)",
+        "fontSize": 12
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "mongoAnalytics",
+      "x": 1020,
+      "y": 620,
+      "width": 100,
+      "height": 50,
+      "backgroundColor": "#b2f2bb",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#16a34a",
+      "label": {
+        "text": "MongoDB\n(Analytics)",
+        "fontSize": 12
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "zone5",
+      "x": 50,
+      "y": 760,
+      "width": 1100,
+      "height": 100,
+      "backgroundColor": "#fff3bf",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#f59e0b",
+      "strokeWidth": 1,
+      "opacity": 35
+    },
+    {
+      "type": "text",
+      "id": "zone5Label",
+      "x": 60,
+      "y": 766,
+      "text": "External Services",
+      "fontSize": 16,
+      "strokeColor": "#d97706"
+    },
+    {
+      "type": "rectangle",
+      "id": "googleMaps",
+      "x": 100,
+      "y": 790,
+      "width": 130,
+      "height": 50,
+      "backgroundColor": "#ffd8a8",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#d97706",
+      "label": {
+        "text": "Google Maps\nAPI",
+        "fontSize": 14
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "stripe",
+      "x": 280,
+      "y": 790,
+      "width": 130,
+      "height": 50,
+      "backgroundColor": "#ffd8a8",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#d97706",
+      "label": {
+        "text": "Stripe\nPayments",
+        "fontSize": 14
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "twilio",
+      "x": 460,
+      "y": 790,
+      "width": 130,
+      "height": 50,
+      "backgroundColor": "#ffd8a8",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#d97706",
+      "label": {
+        "text": "Twilio\nSMS/Push",
+        "fontSize": 14
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "sendgrid",
+      "x": 640,
+      "y": 790,
+      "width": 130,
+      "height": 50,
+      "backgroundColor": "#ffd8a8",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#d97706",
+      "label": {
+        "text": "SendGrid\nEmail",
+        "fontSize": 14
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "sagemaker",
+      "x": 820,
+      "y": 790,
+      "width": 140,
+      "height": 50,
+      "backgroundColor": "#eebefa",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#c026d3",
+      "label": {
+        "text": "AWS SageMaker\n(ML Models)",
+        "fontSize": 14
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "cloudwatch",
+      "x": 1000,
+      "y": 790,
+      "width": 120,
+      "height": 50,
+      "backgroundColor": "#c3fae8",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#0891b2",
+      "label": {
+        "text": "CloudWatch\nMonitoring",
+        "fontSize": 14
+      }
+    },
+    {
+      "type": "arrow",
+      "id": "flow1",
+      "x": 170,
+      "y": 185,
+      "width": 0,
+      "height": 55,
+      "points": [
+        [0, 0],
+        [0, 55]
+      ],
+      "strokeColor": "#2563eb",
+      "strokeWidth": 2,
+      "endArrowhead": "arrow"
+    },
+    {
+      "type": "arrow",
+      "id": "flow2",
+      "x": 370,
+      "y": 185,
+      "width": 0,
+      "height": 55,
+      "points": [
+        [0, 0],
+        [0, 55]
+      ],
+      "strokeColor": "#2563eb",
+      "strokeWidth": 2,
+      "endArrowhead": "arrow"
+    },
+    {
+      "type": "arrow",
+      "id": "flow3",
+      "x": 570,
+      "y": 185,
+      "width": 150,
+      "height": 40,
+      "points": [
+        [0, 0],
+        [150, 40]
+      ],
+      "strokeColor": "#f59e0b",
+      "strokeWidth": 2,
+      "endArrowhead": "arrow"
+    },
+    {
+      "type": "arrow",
+      "id": "flow4",
+      "x": 1000,
+      "y": 185,
+      "width": 0,
+      "height": 55,
+      "points": [
+        [0, 0],
+        [0, 55]
+      ],
+      "strokeColor": "#8b5cf6",
+      "strokeWidth": 2,
+      "endArrowhead": "arrow"
+    },
+    {
+      "type": "arrow",
+      "id": "flow5",
+      "x": 290,
+      "y": 320,
+      "width": 0,
+      "height": 40,
+      "points": [
+        [0, 0],
+        [0, 40]
+      ],
+      "strokeColor": "#7c3aed",
+      "strokeWidth": 2,
+      "endArrowhead": "arrow",
+      "label": {
+        "text": "REST/gRPC",
+        "fontSize": 12
+      }
+    },
+    {
+      "type": "arrow",
+      "id": "flow6",
+      "x": 530,
+      "y": 320,
+      "width": -150,
+      "height": 40,
+      "points": [
+        [0, 0],
+        [-150, 40]
+      ],
+      "strokeColor": "#dc2626",
+      "strokeWidth": 2,
+      "endArrowhead": "arrow"
+    },
+    {
+      "type": "arrow",
+      "id": "flow7",
+      "x": 760,
+      "y": 320,
+      "width": 140,
+      "height": 40,
+      "points": [
+        [0, 0],
+        [140, 40]
+      ],
+      "strokeColor": "#ea580c",
+      "strokeWidth": 2,
+      "endArrowhead": "arrow"
+    },
+    {
+      "type": "arrow",
+      "id": "flow8",
+      "x": 980,
+      "y": 320,
+      "width": 0,
+      "height": 40,
+      "points": [
+        [0, 0],
+        [0, 40]
+      ],
+      "strokeColor": "#7c3aed",
+      "strokeWidth": 2,
+      "endArrowhead": "arrow"
+    },
+    {
+      "type": "arrow",
+      "id": "flow9",
+      "x": 145,
+      "y": 450,
+      "width": 0,
+      "height": 170,
+      "points": [
+        [0, 0],
+        [0, 170]
+      ],
+      "strokeColor": "#2563eb",
+      "strokeWidth": 2,
+      "endArrowhead": "arrow",
+      "strokeStyle": "dashed"
+    },
+    {
+      "type": "arrow",
+      "id": "flow10",
+      "x": 275,
+      "y": 450,
+      "width": -35,
+      "height": 170,
+      "points": [
+        [0, 0],
+        [-35, 170]
+      ],
+      "strokeColor": "#2563eb",
+      "strokeWidth": 2,
+      "endArrowhead": "arrow",
+      "strokeStyle": "dashed"
+    },
+    {
+      "type": "arrow",
+      "id": "flow11",
+      "x": 465,
+      "y": 450,
+      "width": -85,
+      "height": 170,
+      "points": [
+        [0, 0],
+        [-85, 170]
+      ],
+      "strokeColor": "#2563eb",
+      "strokeWidth": 2,
+      "endArrowhead": "arrow",
+      "strokeStyle": "dashed"
+    },
+    {
+      "type": "arrow",
+      "id": "flow12",
+      "x": 625,
+      "y": 450,
+      "width": 0,
+      "height": 95,
+      "points": [
+        [0, 0],
+        [0, 95]
+      ],
+      "strokeColor": "#7c3aed",
+      "strokeWidth": 2,
+      "endArrowhead": "arrow",
+      "strokeStyle": "dashed"
+    },
+    {
+      "type": "arrow",
+      "id": "flow13",
+      "x": 785,
+      "y": 450,
+      "width": 35,
+      "height": 170,
+      "points": [
+        [0, 0],
+        [35, 170]
+      ],
+      "strokeColor": "#16a34a",
+      "strokeWidth": 2,
+      "endArrowhead": "arrow",
+      "strokeStyle": "dashed"
+    },
+    {
+      "type": "arrow",
+      "id": "flow14",
+      "x": 945,
+      "y": 450,
+      "width": 95,
+      "height": 170,
+      "points": [
+        [0, 0],
+        [95, 170]
+      ],
+      "strokeColor": "#ca8a04",
+      "strokeWidth": 2,
+      "endArrowhead": "arrow",
+      "strokeStyle": "dashed"
+    },
+    {
+      "type": "arrow",
+      "id": "flow15",
+      "x": 215,
+      "y": 530,
+      "width": 95,
+      "height": 90,
+      "points": [
+        [0, 0],
+        [95, 90]
+      ],
+      "strokeColor": "#c026d3",
+      "strokeWidth": 2,
+      "endArrowhead": "arrow",
+      "strokeStyle": "dashed"
+    },
+    {
+      "type": "arrow",
+      "id": "flow16",
+      "x": 395,
+      "y": 530,
+      "width": 125,
+      "height": 90,
+      "points": [
+        [0, 0],
+        [125, 90]
+      ],
+      "strokeColor": "#c026d3",
+      "strokeWidth": 2,
+      "endArrowhead": "arrow",
+      "strokeStyle": "dashed"
+    },
+    {
+      "type": "arrow",
+      "id": "flow17",
+      "x": 575,
+      "y": 530,
+      "width": 85,
+      "height": 90,
+      "points": [
+        [0, 0],
+        [85, 90]
+      ],
+      "strokeColor": "#16a34a",
+      "strokeWidth": 2,
+      "endArrowhead": "arrow",
+      "strokeStyle": "dashed"
+    },
+    {
+      "type": "arrow",
+      "id": "flow18",
+      "x": 915,
+      "y": 530,
+      "width": 105,
+      "height": 90,
+      "points": [
+        [0, 0],
+        [105, 90]
+      ],
+      "strokeColor": "#0891b2",
+      "strokeWidth": 2,
+      "endArrowhead": "arrow",
+      "strokeStyle": "dashed"
+    },
+    {
+      "type": "arrow",
+      "id": "flow19",
+      "x": 165,
+      "y": 670,
+      "width": 0,
+      "height": 120,
+      "points": [
+        [0, 0],
+        [0, 120]
+      ],
+      "strokeColor": "#d97706",
+      "strokeWidth": 2,
+      "endArrowhead": "arrow",
+      "strokeStyle": "dotted"
+    },
+    {
+      "type": "arrow",
+      "id": "flow20",
+      "x": 345,
+      "y": 670,
+      "width": -65,
+      "height": 120,
+      "points": [
+        [0, 0],
+        [-65, 120]
+      ],
+      "strokeColor": "#d97706",
+      "strokeWidth": 2,
+      "endArrowhead": "arrow",
+      "strokeStyle": "dotted"
+    },
+    {
+      "type": "arrow",
+      "id": "flow21",
+      "x": 525,
+      "y": 670,
+      "width": 65,
+      "height": 120,
+      "points": [
+        [0, 0],
+        [65, 120]
+      ],
+      "strokeColor": "#d97706",
+      "strokeWidth": 2,
+      "endArrowhead": "arrow",
+      "strokeStyle": "dotted"
+    },
+    {
+      "type": "arrow",
+      "id": "flow22",
+      "x": 705,
+      "y": 670,
+      "width": 15,
+      "height": 120,
+      "points": [
+        [0, 0],
+        [15, 120]
+      ],
+      "strokeColor": "#d97706",
+      "strokeWidth": 2,
+      "endArrowhead": "arrow",
+      "strokeStyle": "dotted"
+    },
+    {
+      "type": "arrow",
+      "id": "flow23",
+      "x": 890,
+      "y": 670,
+      "width": -30,
+      "height": 120,
+      "points": [
+        [0, 0],
+        [-30, 120]
+      ],
+      "strokeColor": "#c026d3",
+      "strokeWidth": 2,
+      "endArrowhead": "arrow",
+      "strokeStyle": "dotted"
+    },
+    {
+      "type": "arrow",
+      "id": "flow24",
+      "x": 1060,
+      "y": 670,
+      "width": 20,
+      "height": 120,
+      "points": [
+        [0, 0],
+        [20, 120]
+      ],
+      "strokeColor": "#0891b2",
+      "strokeWidth": 2,
+      "endArrowhead": "arrow",
+      "strokeStyle": "dotted"
+    }
+  ],
+  "appState": {
+    "viewBackgroundColor": "#ffffff",
+    "gridSize": null,
+    "zoom": 1
+  },
+  "files": {}
+}

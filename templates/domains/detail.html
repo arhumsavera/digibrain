@@ -1,0 +1,426 @@
+{% extends "base.html" %}
+
+{% block title %}{{ domain.name }} — Learning{% endblock %}
+
+{% block head %}
+<style>
+    .domain-header {
+        margin-bottom: 1.5rem;
+    }
+    .domain-header h1 {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 0.25rem;
+    }
+    .domain-meta {
+        color: #8b949e;
+        font-size: 0.875rem;
+    }
+
+    /* Tag filter bar */
+    .tag-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+        padding: 1rem;
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+    }
+    .tag-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.65rem;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 500;
+        border: 1px solid #30363d;
+        background: #0d1117;
+        color: #8b949e;
+        cursor: pointer;
+        transition: all 0.15s;
+        white-space: nowrap;
+    }
+    .tag-pill:hover { border-color: #58a6ff; color: #58a6ff; }
+    .tag-pill.selected { background: #1f6feb22; border-color: #58a6ff; color: #58a6ff; }
+    .tag-pill.all-pill { background: #21262d; color: #c9d1d9; border-color: #30363d; }
+    .tag-pill.all-pill.selected { background: #238636; border-color: #238636; color: white; }
+
+    /* Type tabs */
+    .type-tabs {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+    }
+    .type-tab {
+        padding: 0.35rem 0.85rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        border: 1px solid #30363d;
+        background: transparent;
+        color: #8b949e;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+    .type-tab:hover { color: #c9d1d9; border-color: #8b949e; }
+    .type-tab.active { background: #21262d; color: #f0f6fc; border-color: #8b949e; }
+
+    /* Card grid */
+    .items-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+        gap: 1rem;
+    }
+
+    /* Item card */
+    .item-card {
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 10px;
+        padding: 1.1rem 1.25rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+        transition: border-color 0.15s;
+    }
+    .item-card:hover { border-color: #58a6ff44; }
+    .item-card.hidden { display: none; }
+
+    .card-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+    }
+    .card-badges {
+        display: flex;
+        gap: 0.4rem;
+        align-items: center;
+    }
+
+    /* Type badge */
+    .type-badge {
+        padding: 0.15rem 0.55rem;
+        border-radius: 4px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+    .type-concept  { background: #1f6feb33; color: #58a6ff; border: 1px solid #1f6feb55; }
+    .type-resource { background: #9e6a0333; color: #d29922; border: 1px solid #9e6a0355; }
+    .type-tool     { background: #23863633; color: #3fb950; border: 1px solid #23863655; }
+    .type-session  { background: #8250df33; color: #bc8cff; border: 1px solid #8250df55; }
+    .type-note     { background: #30363d;   color: #8b949e; border: 1px solid #444c56; }
+
+    /* Status select — minimal */
+    .status-select {
+        background: transparent;
+        border: 1px solid #30363d;
+        color: #8b949e;
+        font-size: 0.75rem;
+        padding: 0.15rem 0.4rem;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    .status-select:focus { outline: none; border-color: #58a6ff; }
+
+    .card-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #f0f6fc;
+        line-height: 1.4;
+        margin: 0;
+    }
+
+    .card-definition {
+        font-size: 0.85rem;
+        color: #c9d1d9;
+        line-height: 1.65;
+        flex: 1;
+    }
+    .card-definition.collapsed {
+        display: -webkit-box;
+        -webkit-line-clamp: 4;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .expand-btn {
+        background: none;
+        border: none;
+        color: #58a6ff;
+        font-size: 0.78rem;
+        cursor: pointer;
+        padding: 0;
+        margin-top: -0.2rem;
+        text-align: left;
+    }
+    .expand-btn:hover { color: #79c0ff; }
+
+    .card-url {
+        font-size: 0.8rem;
+    }
+    .card-url a {
+        color: #58a6ff;
+        text-decoration: none;
+    }
+    .card-url a:hover { text-decoration: underline; }
+
+    .card-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem;
+        margin-top: 0.25rem;
+    }
+    .card-tag {
+        padding: 0.15rem 0.5rem;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        background: #21262d;
+        color: #8b949e;
+        border: 1px solid #30363d;
+        cursor: pointer;
+        transition: all 0.12s;
+    }
+    .card-tag:hover { color: #58a6ff; border-color: #58a6ff; }
+
+    /* Empty state */
+    .empty-state {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 3rem;
+        color: #8b949e;
+    }
+
+    /* Add item panel */
+    .add-panel {
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+    }
+    .add-panel-toggle {
+        width: 100%;
+        padding: 0.75rem 1.25rem;
+        background: none;
+        border: none;
+        color: #8b949e;
+        text-align: left;
+        cursor: pointer;
+        font-size: 0.875rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .add-panel-toggle:hover { color: #c9d1d9; }
+    .add-panel-body {
+        padding: 0 1.25rem 1.25rem;
+        display: none;
+    }
+    .add-panel-body.open { display: block; }
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+    .form-field label {
+        display: block;
+        font-size: 0.78rem;
+        color: #8b949e;
+        margin-bottom: 0.3rem;
+    }
+    .form-field input, .form-field select {
+        width: 100%;
+        padding: 0.45rem 0.6rem;
+        background: #0d1117;
+        border: 1px solid #30363d;
+        color: #c9d1d9;
+        border-radius: 5px;
+        font-size: 0.875rem;
+    }
+    .form-field input:focus, .form-field select:focus {
+        outline: none;
+        border-color: #58a6ff;
+    }
+
+    /* Results count */
+    .results-meta {
+        font-size: 0.8rem;
+        color: #8b949e;
+        margin-bottom: 0.75rem;
+    }
+    .results-meta span { color: #c9d1d9; font-weight: 600; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="domain-header">
+    <a href="/domains" style="color: #58a6ff; font-size: 0.85rem;">← Domains</a>
+    <h1 style="margin-top: 0.5rem;">
+        {{ domain.name }}
+        <span style="font-size: 0.9rem; font-weight: 400; color: #8b949e;">{{ items|length }} items</span>
+    </h1>
+    {% if domain.description %}
+    <p class="domain-meta">{{ domain.description }}</p>
+    {% endif %}
+</div>
+
+<!-- Add item (collapsible) -->
+<div class="add-panel">
+    <button class="add-panel-toggle" onclick="toggleAddPanel(this)">
+        <span>＋</span> Add item
+    </button>
+    <div class="add-panel-body" id="add-panel-body">
+        <form
+            hx-post="/domains/{{ domain.id }}/items"
+            hx-target="#items-grid"
+            hx-swap="outerHTML"
+            hx-on::after-request="this.reset()"
+        >
+            <div class="form-row">
+                <div class="form-field" style="grid-column: span 2;">
+                    <label>Title</label>
+                    <input type="text" name="title" required placeholder="e.g. Attention mechanism">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-field">
+                    <label>Type</label>
+                    <select name="item_type">
+                        <option value="concept">concept</option>
+                        <option value="resource">resource</option>
+                        <option value="tool">tool</option>
+                        <option value="session">session</option>
+                        <option value="note">note</option>
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label>Status</label>
+                    <select name="status">
+                        <option value="active">active</option>
+                        <option value="pending">to-read</option>
+                        <option value="done">done</option>
+                    </select>
+                </div>
+            </div>
+            <button type="submit" class="btn" style="font-size: 0.85rem; padding: 0.4rem 1rem;">Add</button>
+        </form>
+    </div>
+</div>
+
+{% if all_tags %}
+<!-- Tag filter bar -->
+<div class="tag-bar">
+    <button class="tag-pill all-pill selected" id="btn-all" onclick="clearTags()">All</button>
+    {% for tag in all_tags %}
+    <button class="tag-pill" data-tag="{{ tag }}" onclick="toggleTag(this, '{{ tag }}')">{{ tag }}</button>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Type tabs -->
+<div class="type-tabs">
+    <button class="type-tab active" data-type="all" onclick="setTypeFilter(this, 'all')">All</button>
+    {% set types = items | map(attribute='type') | list | unique | sort %}
+    {% for t in types %}
+    <button class="type-tab" data-type="{{ t }}" onclick="setTypeFilter(this, '{{ t }}')">{{ t }}</button>
+    {% endfor %}
+</div>
+
+<!-- Results count -->
+<div class="results-meta" id="results-meta">
+    Showing <span id="results-count">{{ items|length }}</span> of {{ items|length }} items
+</div>
+
+<!-- Card grid -->
+<div class="items-grid" id="items-grid">
+    {% for item in items %}
+    {% include "fragments/item_row.html" %}
+    {% endfor %}
+    {% if not items %}
+    <div class="empty-state">No items yet.</div>
+    {% endif %}
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const selectedTags = new Set();
+let activeType = 'all';
+const totalCount = {{ items|length }};
+
+function applyFilters() {
+    const cards = document.querySelectorAll('.item-card');
+    let visible = 0;
+    cards.forEach(card => {
+        const cardTags = card.dataset.tags ? card.dataset.tags.split(',') : [];
+        const cardType = card.dataset.type || '';
+        const tagMatch = selectedTags.size === 0 || [...selectedTags].some(t => cardTags.includes(t));
+        const typeMatch = activeType === 'all' || cardType === activeType;
+        if (tagMatch && typeMatch) {
+            card.classList.remove('hidden');
+            visible++;
+        } else {
+            card.classList.add('hidden');
+        }
+    });
+    document.getElementById('results-count').textContent = visible;
+}
+
+function toggleTag(btn, tag) {
+    if (selectedTags.has(tag)) {
+        selectedTags.delete(tag);
+        btn.classList.remove('selected');
+    } else {
+        selectedTags.add(tag);
+        btn.classList.add('selected');
+    }
+    document.getElementById('btn-all').classList.toggle('selected', selectedTags.size === 0);
+    applyFilters();
+}
+
+function selectTag(tag) {
+    // Called from card tag pills — toggle that tag in the filter bar
+    const btn = document.querySelector(`.tag-pill[data-tag="${tag}"]`);
+    if (btn) toggleTag(btn, tag);
+}
+
+function clearTags() {
+    selectedTags.clear();
+    document.querySelectorAll('.tag-pill').forEach(b => b.classList.remove('selected'));
+    document.getElementById('btn-all').classList.add('selected');
+    applyFilters();
+}
+
+function setTypeFilter(btn, type) {
+    activeType = type;
+    document.querySelectorAll('.type-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    applyFilters();
+}
+
+function toggleAddPanel(btn) {
+    const body = document.getElementById('add-panel-body');
+    body.classList.toggle('open');
+    btn.querySelector('span').textContent = body.classList.contains('open') ? '−' : '＋';
+}
+
+function toggleExpand(btn, id) {
+    const def = document.getElementById('def-' + id);
+    if (def.classList.contains('collapsed')) {
+        def.classList.remove('collapsed');
+        btn.textContent = 'show less';
+    } else {
+        def.classList.add('collapsed');
+        btn.textContent = 'show more';
+    }
+}
+</script>
+{% endblock %}

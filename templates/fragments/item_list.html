@@ -1,0 +1,8 @@
+<div class="items-grid" id="items-grid">
+    {% for item in items %}
+    {% include "fragments/item_row.html" %}
+    {% endfor %}
+    {% if not items %}
+    <div class="empty-state">No items yet.</div>
+    {% endif %}
+</div>

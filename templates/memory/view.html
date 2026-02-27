@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}{{ filename }} - Memory{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="/memory" style="color: #58a6ff;">← Back to Memory</a>
+</div>
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+    <h1>{{ filename }}</h1>
+    <div>
+        <a href="/memory/edit/{{ memory_type }}/{{ filename }}" class="btn">✏️ Edit</a>
+    </div>
+</div>
+
+<p style="color: #8b949e; margin-bottom: 1rem;">Type: {{ memory_type }}</p>
+
+<div class="card">
+    <pre style="white-space: pre-wrap; font-family: 'Monaco', 'Menlo', monospace; font-size: 0.9rem; line-height: 1.6;">{{ content }}</pre>
+</div>
+{% endblock %}

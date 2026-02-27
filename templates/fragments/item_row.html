@@ -1,0 +1,49 @@
+<div class="item-card" data-tags="{{ item.tags_parsed | join(',') }}" data-type="{{ item.type }}">
+    <div class="card-top">
+        <div class="card-badges">
+            <span class="type-badge type-{{ item.type }}">{{ item.type }}</span>
+        </div>
+        <form
+            hx-post="/domains/items/{{ item.id }}/status"
+            hx-target="closest .item-card"
+            hx-swap="outerHTML"
+            style="display:inline;"
+        >
+            <select name="status" class="status-select" onchange="this.form.requestSubmit()">
+                <option value="active"  {% if item.status == 'active'  %}selected{% endif %}>active</option>
+                <option value="pending" {% if item.status == 'pending' %}selected{% endif %}>to-read</option>
+                <option value="done"    {% if item.status == 'done'    %}selected{% endif %}>done</option>
+            </select>
+        </form>
+    </div>
+
+    <h3 class="card-title">{{ item.title }}</h3>
+
+    {% set definition = item.data_parsed.get('definition') or item.data_parsed.get('description') %}
+    {% if definition %}
+    <p class="card-definition collapsed" id="def-{{ item.id }}">{{ definition }}</p>
+    <button class="expand-btn" onclick="toggleExpand(this, '{{ item.id }}')">show more</button>
+    {% endif %}
+
+    {% if item.data_parsed.get('url') %}
+    <div class="card-url">
+        <a href="{{ item.data_parsed.url }}" target="_blank" rel="noopener">↗ {{ item.data_parsed.url | truncate(60, true, '…') }}</a>
+    </div>
+    {% endif %}
+
+    {% if item.data_parsed.get('author') or item.data_parsed.get('format') or item.data_parsed.get('source') %}
+    <div style="font-size: 0.78rem; color: #6e7681;">
+        {% if item.data_parsed.get('author') %}{{ item.data_parsed.author }}{% endif %}
+        {% if item.data_parsed.get('format') %} · {{ item.data_parsed.format }}{% endif %}
+        {% if item.data_parsed.get('source') %} · {{ item.data_parsed.source }}{% endif %}
+    </div>
+    {% endif %}
+
+    {% if item.tags_parsed %}
+    <div class="card-tags">
+        {% for tag in item.tags_parsed %}
+        <button class="card-tag" onclick="selectTag('{{ tag }}')">#{{ tag }}</button>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>

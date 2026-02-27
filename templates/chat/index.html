@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Chat - Agent Memory{% endblock %}
+
+{% block content %}
+<h1>Agent Chat</h1>
+
+<div class="card" style="max-width: 900px; margin: 0 auto;">
+    <div id="chat-messages" style="min-height: 400px; max-height: 600px; overflow-y: auto; margin-bottom: 1rem; padding: 1rem; background: #0d1117; border-radius: 4px;">
+        <div style="color: #8b949e; text-align: center; padding: 2rem;">
+            Send a message to start chatting with an agent.
+        </div>
+    </div>
+
+    <form id="chat-form" style="display: flex; gap: 0.5rem;">
+        <select name="agent" id="agent-select" style="background: #0d1117; border: 1px solid #30363d; color: #c9d1d9; padding: 0.5rem; border-radius: 4px;">
+            {% for a in agents %}
+            <option value="{{ a }}">{{ a }}</option>
+            {% endfor %}
+        </select>
+        <input
+            type="text"
+            name="message"
+            id="message-input"
+            placeholder="Type your message..."
+            required
+            style="flex: 1; padding: 0.5rem; background: #0d1117; border: 1px solid #30363d; color: #c9d1d9; border-radius: 4px;"
+        >
+        <button type="submit" id="send-btn" class="btn">Send</button>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const form = document.getElementById('chat-form');
+    const messagesDiv = document.getElementById('chat-messages');
+    const sendBtn = document.getElementById('send-btn');
+
+    // Generate a stable session key per page load
+    const sessionKey = Math.random().toString(36).slice(2);
+
+    function appendMessage(role, content, style) {
+        const el = document.createElement('div');
+        el.style.cssText = style;
+        el.innerHTML = content;
+        messagesDiv.appendChild(el);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        return el;
+    }
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const message = document.getElementById('message-input').value.trim();
+        const agent = document.getElementById('agent-select').value;
+        if (!message) return;
+
+        // Clear placeholder on first message
+        const placeholder = messagesDiv.querySelector('[data-placeholder]');
+        if (placeholder) placeholder.remove();
+
+        // Show user message
+        appendMessage('user', '<strong>You:</strong> ' + escapeHtml(message),
+            'margin-bottom: 1rem; padding: 0.75rem; background: #1f6feb; border-radius: 4px;');
+
+        form.reset();
+        sendBtn.disabled = true;
+
+        // Agent message container
+        const botMsg = appendMessage(agent, '', 'margin-bottom: 1rem; padding: 0.75rem; background: #21262d; border-radius: 4px;');
+        const statusEl = document.createElement('div');
+        statusEl.style.cssText = 'color: #8b949e; font-size: 0.85rem; margin-bottom: 0.5rem;';
+        statusEl.textContent = agent + ': working...';
+        botMsg.appendChild(statusEl);
+        const contentEl = document.createElement('pre');
+        contentEl.style.cssText = 'margin: 0; white-space: pre-wrap; word-break: break-word; font-family: inherit;';
+        botMsg.appendChild(contentEl);
+
+        const url = '/chat/stream?'
+            + 'message=' + encodeURIComponent(message)
+            + '&agent=' + encodeURIComponent(agent)
+            + '&session=' + encodeURIComponent(sessionKey);
+
+        const evtSource = new EventSource(url);
+
+        evtSource.addEventListener('progress', function(e) {
+            statusEl.textContent = agent + ': ' + e.data;
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        });
+
+        evtSource.addEventListener('response', function(e) {
+            statusEl.remove();
+            contentEl.textContent = JSON.parse(e.data);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        });
+
+        evtSource.addEventListener('files', function(e) {
+            const files = JSON.parse(e.data);
+            const fileEl = document.createElement('div');
+            fileEl.style.cssText = 'margin-top: 0.5rem; color: #58a6ff; font-size: 0.85rem;';
+            fileEl.textContent = 'Files: ' + files.join(', ');
+            botMsg.appendChild(fileEl);
+        });
+
+        evtSource.addEventListener('error', function(e) {
+            statusEl.remove();
+            contentEl.style.color = '#f85149';
+            contentEl.textContent = 'Error: ' + (e.data || 'connection failed');
+            evtSource.close();
+            sendBtn.disabled = false;
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        });
+
+        evtSource.addEventListener('done', function(e) {
+            evtSource.close();
+            sendBtn.disabled = false;
+        });
+
+        evtSource.onerror = function() {
+            if (evtSource.readyState === EventSource.CLOSED) return;
+            statusEl.textContent = '';
+            if (!contentEl.textContent) {
+                contentEl.style.color = '#f85149';
+                contentEl.textContent = '[Connection lost]';
+            }
+            evtSource.close();
+            sendBtn.disabled = false;
+        };
+    });
+
+    function escapeHtml(s) {
+        return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+</script>
+{% endblock %}

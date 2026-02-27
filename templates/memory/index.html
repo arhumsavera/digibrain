@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Memory - Agent Memory{% endblock %}
+
+{% block content %}
+<h1>Memory Browser</h1>
+
+<!-- Search -->
+<div class="card">
+    <h3>Search Memory</h3>
+    <form hx-get="/memory/search" hx-target="#search-results" hx-indicator="#search-indicator">
+        <input 
+            type="text" 
+            name="q" 
+            placeholder="Search memory files..." 
+            style="padding: 0.5rem; width: 300px; background: #0d1117; border: 1px solid #30363d; color: #c9d1d9; border-radius: 4px;"
+            hx-trigger="keyup changed delay:300ms"
+        >
+        <button type="submit" class="btn">Search</button>
+        <span id="search-indicator" class="htmx-indicator" style="color: #8b949e;"> Searching...</span>
+    </form>
+    <div id="search-results" style="margin-top: 1rem;"></div>
+</div>
+
+<!-- Create New Memory -->
+<div class="card" style="margin-top: 2rem;">
+    <h3>Create New Memory File</h3>
+    <form method="POST" action="/memory/create/semantic" style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;">
+        <div>
+            <label style="display: block; margin-bottom: 0.5rem; color: #8b949e;">Type</label>
+            <select name="memory_type" style="padding: 0.5rem; background: #0d1117; border: 1px solid #30363d; color: #c9d1d9; border-radius: 4px;">
+                <option value="semantic">Semantic</option>
+                <option value="episodic">Episodic</option>
+                <option value="procedural">Procedural</option>
+            </select>
+        </div>
+        <div>
+            <label style="display: block; margin-bottom: 0.5rem; color: #8b949e;">Filename</label>
+            <input 
+                type="text" 
+                name="filename" 
+                placeholder="my-notes.md"
+                required
+                style="padding: 0.5rem; background: #0d1117; border: 1px solid #30363d; color: #c9d1d9; border-radius: 4px;"
+            >
+        </div>
+        <button type="submit" class="btn">+ Create</button>
+    </form>
+</div>
+
+<div class="grid" style="margin-top: 2rem;">
+    <!-- Semantic Memory -->
+    <div class="card">
+        <h3>Semantic (Facts)</h3>
+        {% if semantic %}
+        <ul style="list-style: none;">
+            {% for file in semantic %}
+            <li style="margin-bottom: 0.75rem; padding-bottom: 0.75rem; border-bottom: 1px solid #30363d;">
+                <a href="/memory/view/semantic/{{ file.name }}">{{ file.name }}</a>
+                <p style="color: #8b949e; font-size: 0.875rem; margin-top: 0.25rem;">
+                    {{ file.preview }}...
+                </p>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p>No semantic memory files.</p>
+        {% endif %}
+    </div>
+    
+    <!-- Episodic Memory -->
+    <div class="card">
+        <h3>Episodic (Events)</h3>
+        {% if episodic %}
+        <ul style="list-style: none;">
+            {% for file in episodic %}
+            <li style="margin-bottom: 0.75rem; padding-bottom: 0.75rem; border-bottom: 1px solid #30363d;">
+                <a href="/memory/view/episodic/{{ file.name }}">{{ file.name }}</a>
+                <span style="color: #8b949e; font-size: 0.875rem; float: right;">{{ file.modified }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p>No episodic memory files.</p>
+        {% endif %}
+    </div>
+    
+    <!-- Procedural Memory -->
+    <div class="card">
+        <h3>Procedural (Workflows)</h3>
+        {% if procedural %}
+        <ul style="list-style: none;">
+            {% for file in procedural %}
+            <li style="margin-bottom: 0.75rem; padding-bottom: 0.75rem; border-bottom: 1px solid #30363d;">
+                <a href="/memory/view/procedural/{{ file.name }}">{{ file.name }}</a>
+                <p style="color: #8b949e; font-size: 0.875rem; margin-top: 0.25rem;">
+                    {{ file.preview }}...
+                </p>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p>No procedural memory files.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

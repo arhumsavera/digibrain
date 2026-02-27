@@ -10,6 +10,8 @@
 
 # [Workflow/Rule Name]
 
+<!-- domain: general -->
+
 ## When to apply
 - Trigger conditions (task type, keywords, context)
 

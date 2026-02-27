@@ -1,0 +1,65 @@
+<tbody id="job-{{ job.id }}">
+  <tr class="job-main-row" onclick="toggleJobDetail('{{ job.id }}')" style="cursor: pointer;">
+    <td>
+      <span class="job-expand-icon" id="icon-{{ job.id }}" style="color: #8b949e; font-size: 0.7rem; margin-right: 0.4rem; display: inline-block; transition: transform 0.15s;">▶</span>
+      <span style="color: #f0f6fc;">{{ job.title }}</span>
+    </td>
+    <td style="color: #8b949e;">{{ job.company_name or '—' }}</td>
+    <td onclick="event.stopPropagation()">
+      <form
+          hx-post="/jobs/{{ job.id }}/status"
+          hx-target="#job-{{ job.id }}"
+          hx-swap="outerHTML"
+          style="display: inline;"
+      >
+        <select name="status" onchange="this.form.submit()"
+            style="background: #0d1117; border: 1px solid #30363d; color: #c9d1d9; padding: 0.25rem 0.4rem; border-radius: 4px; font-size: 0.8rem;">
+          {% for s in ['discovered', 'approved', 'interviewing', 'offered', 'rejected'] %}
+          <option value="{{ s }}" {% if job.status == s %}selected{% endif %}>{{ s|capitalize }}</option>
+          {% endfor %}
+        </select>
+      </form>
+    </td>
+    <td onclick="event.stopPropagation()">
+      {% if job.source %}
+      <span class="source-badge">{{ job.source }}</span>
+      {% else %}
+      <span style="color: #30363d;">—</span>
+      {% endif %}
+    </td>
+    <td style="color: #8b949e; font-size: 0.85rem;" onclick="event.stopPropagation()">{{ job.created_at[:10] }}</td>
+  </tr>
+  <tr id="detail-{{ job.id }}" style="display: none;">
+    <td colspan="5" style="padding: 0.75rem 1rem 1.25rem 2rem; background: #0d1117; border-bottom: 2px solid #30363d;">
+      {% if job.description %}
+      <div style="margin-bottom: 0.75rem;">
+        <div style="font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #58a6ff; margin-bottom: 0.35rem;">Description</div>
+        <div style="font-size: 0.82rem; color: #c9d1d9; line-height: 1.6; white-space: pre-wrap;">{{ job.description }}</div>
+      </div>
+      {% endif %}
+      {% if job.notes %}
+      <div style="margin-bottom: 0.75rem;">
+        <div style="font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #58a6ff; margin-bottom: 0.35rem;">Notes</div>
+        <div style="font-size: 0.82rem; color: #c9d1d9; line-height: 1.6; white-space: pre-wrap;">{{ job.notes }}</div>
+      </div>
+      {% endif %}
+      {% if job.skills %}
+      <div style="margin-bottom: 0.75rem;">
+        <div style="font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #58a6ff; margin-bottom: 0.35rem;">Skills</div>
+        <div style="font-size: 0.82rem; color: #8b949e;">{{ job.skills }}</div>
+      </div>
+      {% endif %}
+      {% if not job.description and not job.notes and not job.skills %}
+      <div style="font-size: 0.82rem; color: #6e7681; font-style: italic;">No details stored.</div>
+      {% endif %}
+      {% if job.url %}
+      <div style="margin-top: 0.75rem;">
+        <a href="{{ job.url }}" target="_blank"
+           style="font-size: 0.8rem; color: #58a6ff; text-decoration: none; border: 1px solid #30363d; padding: 0.25rem 0.6rem; border-radius: 4px;">
+          ↗ Open posting
+        </a>
+      </div>
+      {% endif %}
+    </td>
+  </tr>
+</tbody>

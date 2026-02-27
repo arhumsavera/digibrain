@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Domains - Agent Memory{% endblock %}
+
+{% block content %}
+<h1>Domains</h1>
+
+<div class="card">
+    <h3>All Domains</h3>
+    {% if domains %}
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Items</th>
+                <th>Created</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for d in domains %}
+            <tr>
+                <td><a href="/domains/{{ d.id }}">{{ d.name }}</a></td>
+                <td>{{ d.description or '—' }}</td>
+                <td>{{ d.item_count }}</td>
+                <td>{{ d.created_at[:10] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No domains yet.</p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h3>Create Domain (CLI)</h3>
+    <p>To create a new domain, use the CLI:</p>
+    <pre style="background: #0d1117; padding: 1rem; border-radius: 4px; margin-top: 0.5rem;">uv run applyops domain add "my-domain" --description "Description here" --keywords '["tag1", "tag2"]'</pre>
+</div>
+{% endblock %}

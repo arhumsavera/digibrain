@@ -17,12 +17,17 @@ from telegram.ext import (
 
 from bot.config import BOT_TOKEN, ALLOWED_USER_IDS, WORKING_DIR, RATE_LIMIT_PER_MINUTE
 from bot.sessions import sessions
-from bot.agents import run_agent
+from bot.agents import run_agent, run_persona, create_persona, list_personas
 
-logging.basicConfig(
-    format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
-    level=logging.INFO,
-)
+LOG_FILE = Path(__file__).parent / "bot.log"
+
+_fmt = logging.Formatter("%(asctime)s [%(name)s] %(levelname)s: %(message)s")
+_file_handler = logging.FileHandler(LOG_FILE)
+_file_handler.setFormatter(_fmt)
+_stream_handler = logging.StreamHandler()
+_stream_handler.setFormatter(_fmt)
+
+logging.basicConfig(level=logging.INFO, handlers=[_stream_handler, _file_handler])
 logger = logging.getLogger(__name__)
 
 MAX_MESSAGE_LENGTH = 4096
@@ -66,26 +71,42 @@ async def send_response(update: Update, text: str):
     if not text:
         text = "(empty response)"
 
+    chunk_num = 0
+    original_text = text
     while text:
         chunk = text[:MAX_MESSAGE_LENGTH]
         text = text[MAX_MESSAGE_LENGTH:]
+        chunk_num += 1
         try:
             await update.message.reply_text(chunk, parse_mode=ParseMode.MARKDOWN)
-        except Exception:
-            await update.message.reply_text(chunk)
+        except Exception as e:
+            logger.warning("Markdown parse failed on chunk %d (len=%d): %s — retrying as plain text", chunk_num, len(chunk), e)
+            try:
+                await update.message.reply_text(chunk)
+            except Exception as e2:
+                logger.error("Failed to send chunk %d as plain text: %s", chunk_num, e2)
+
+    logger.info("Sent response: %d char(s), %d chunk(s)", len(original_text), chunk_num)
 
 
 async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_authorized(update.effective_user.id):
         return
 
+    personas = list_personas()
+    persona_list = "  " + " | ".join(personas) if personas else "  (none yet)"
     await update.message.reply_text(
         "Agent bridge ready.\n\n"
         "Messages go to opencode by default.\n"
-        "/claude <msg> — switch to Claude Code\n"
-        "/oc <msg> — switch to opencode\n"
+        "/claude <msg> — Claude Code\n"
+        "/oc <msg> — opencode\n"
+        "/gemini <msg> — Gemini\n"
+        "/agent <name> <msg> — invoke a persona\n"
+        "/agents — list available personas\n"
+        "/newagent <name> <description> — create a new agent on the fly\n"
         "/new — start fresh session\n"
-        "/status — current session info"
+        "/status — current session info\n\n"
+        f"Personas:\n{persona_list}"
     )
 
 
@@ -142,6 +163,127 @@ async def oc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await route_message(update, message)
 
 
+async def gemini_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_authorized(update.effective_user.id):
+        return
+
+    message = " ".join(context.args) if context.args else None
+    if not message:
+        sessions.reset(update.effective_user.id, agent="gemini")
+        await update.message.reply_text("Switched to Gemini. Send a message.")
+        return
+
+    sessions.reset(update.effective_user.id, agent="gemini")
+    await route_message(update, message)
+
+
+async def agents_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_authorized(update.effective_user.id):
+        return
+
+    personas = list_personas()
+    if not personas:
+        await update.message.reply_text("No personas found. Use /newagent to create one.")
+        return
+
+    lines = ["Available personas:\n"]
+    for name in personas:
+        lines.append(f"  /agent {name} <message>")
+    await update.message.reply_text("\n".join(lines))
+
+
+async def agent_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_authorized(update.effective_user.id):
+        return
+
+    if not context.args or len(context.args) < 2:
+        await update.message.reply_text("Usage: /agent <name> <message>\nExample: /agent researcher what is XGBoost?")
+        return
+
+    persona_name = context.args[0].lower()
+    message = " ".join(context.args[1:])
+    user_id = update.effective_user.id
+
+    if is_rate_limited(user_id):
+        await update.message.reply_text("Rate limit reached. Try again in a minute.")
+        return
+    if user_id in _active_users:
+        await update.message.reply_text("Still working on your last message.")
+        return
+
+    record_message(user_id)
+    _active_users.add(user_id)
+
+    status_msg = await update.message.reply_text(f"[{persona_name}] Thinking...")
+
+    async def on_progress(text: str):
+        try:
+            await status_msg.edit_text(f"[{persona_name}] {text}")
+        except Exception:
+            pass
+
+    files = []
+    try:
+        response, _, files = await run_persona(persona_name, message, on_progress=on_progress)
+    except Exception:
+        logger.exception("Persona error")
+        response = "Agent error occurred."
+    finally:
+        _active_users.discard(user_id)
+
+    try:
+        await status_msg.delete()
+    except Exception:
+        pass
+
+    if files:
+        await send_files(update, files)
+    await send_response(update, response)
+
+
+async def newagent_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_authorized(update.effective_user.id):
+        return
+
+    if not context.args or len(context.args) < 2:
+        await update.message.reply_text(
+            "Usage: /newagent <name> <description>\n"
+            "Example: /newagent devops manages deployments, infra, and CI/CD pipelines"
+        )
+        return
+
+    name = context.args[0].lower().replace(" ", "-")
+    description = " ".join(context.args[1:])
+    user_id = update.effective_user.id
+
+    if user_id in _active_users:
+        await update.message.reply_text("Still working on your last message.")
+        return
+
+    _active_users.add(user_id)
+    status_msg = await update.message.reply_text(f"Creating agent '{name}'...")
+
+    try:
+        soul_content = await create_persona(name, description)
+        try:
+            await status_msg.delete()
+        except Exception:
+            pass
+        await update.message.reply_text(
+            f"Agent '{name}' created. Use it with:\n/agent {name} <message>\n\nSoul preview:\n"
+            + soul_content[:800] + ("..." if len(soul_content) > 800 else "")
+        )
+    except Exception:
+        logger.exception("Create persona error")
+        try:
+            await status_msg.delete()
+        except Exception:
+            pass
+        await update.message.reply_text("Failed to create agent.")
+    finally:
+        _active_users.discard(user_id)
+
+
 async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_authorized(update.effective_user.id):
         return
@@ -191,8 +333,8 @@ async def route_message(update: Update, message: str):
         """Edit the status message with progress updates."""
         try:
             await status_msg.edit_text(f"[{session.agent}] {text}")
-        except Exception:
-            pass  # Telegram may reject edits if text hasn't changed
+        except Exception as e:
+            logger.debug("Progress edit failed (non-fatal): %s", e)
 
     files = []
     try:
@@ -228,6 +370,10 @@ def main():
     app.add_handler(CommandHandler("new", new_handler))
     app.add_handler(CommandHandler("claude", claude_handler))
     app.add_handler(CommandHandler("oc", oc_handler))
+    app.add_handler(CommandHandler("gemini", gemini_handler))
+    app.add_handler(CommandHandler("agents", agents_handler))
+    app.add_handler(CommandHandler("agent", agent_handler))
+    app.add_handler(CommandHandler("newagent", newagent_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
 
     logger.info("Bot starting (polling)...")
