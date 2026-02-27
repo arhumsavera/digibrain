@@ -12,6 +12,18 @@ Persistent shared memory for AI coding agents. Gives Claude Code, opencode, and 
 
 Most agent memory systems reach for vector databases: embed everything, retrieve by cosine similarity, hope the right chunks surface. **digibrain** takes a more surgical approach.
 
+### 🔄 Agent Interaction Cycle
+```mermaid
+graph TD
+    User((User)) -->|Message| Agent[AI Agent]
+    Agent -->|1. Detect Domain| DB[(ApplyOps DB)]
+    Agent -->|2. Read Index| Index[memory/index.md]
+    Index -->|3. Load Relevant| Files[Markdown Files]
+    Agent -->|4. Execute Task| Result[Task Result]
+    Result -->|5. Append Log| Episodic[Episodic Memory]
+    Episodic -->|Importance >= 4| Semantic[Semantic Memory]
+```
+
 ### 🌲 Vectorless Retrieval via Tree Index
 `memory/index.md` is an auto-generated table of contents — one row per file, with title, domain tag, and last-updated date. Before each task, the agent reads the index, reasons about relevance, and loads only what it needs.
 
@@ -29,6 +41,16 @@ Matching how humans store different kinds of knowledge:
 
 ### ⚡ Importance Scoring
 Every episodic entry carries a signal strength (1–5). 
+
+```mermaid
+graph LR
+    E1[Episodic Log 1] --> C{Consolidation}
+    E2[Episodic Log 2] --> C
+    E3[Episodic Log 3] --> C
+    C -->|Summarize| S[Semantic Knowledge]
+    C -->|Archive| A[Archive Folder]
+```
+
 *   **High signal (4-5):** Corrections and preference changes update semantic memory **immediately**.
 *   **Low signal (1-3):** Routine logs accumulate and are batch-consolidated by a weekly cron job.
 
