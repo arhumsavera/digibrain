@@ -5,39 +5,6 @@ Updated as ideas come up in conversation. Not agent instructions.
 
 ---
 
-## Voice Interface
-
-> **Note**: Reference implementation was built for a different machine. Adapt paths and check compatibility before implementing. Also needs to support opencode hooks (not just Claude Code Stop/Notification hooks), or be refactored so both agents can share the same TTS/STT layer.
-
-Local push-to-talk + TTS pipeline for hands-free agent interaction.
-
-**STT**: `whisper-server` (whisper.cpp) running warm on `:8787`. Hotkey (Raycast) triggers recording → audio sent to server → transcription pasted into focused app via `pbcopy` + `Cmd+V`.
-
-**TTS**: Kokoro ONNX TTS server on `:8788`. Claude's Stop hook calls `voice speak` after each turn. Responses are sentence-split and streamed in chunks — first sentence plays in ~2s while next is generating.
-
-**Priority / concurrency**:
-- Hotkey press kills active TTS immediately (`pkill afplay`)
-- All TTS calls block while recording (`dictate.pid` exists)
-- `mkdir`-based speech lock prevents multiple agents from interleaving audio
-- Mute kills current sentence + abandons remaining chunks
-
-**Hook integration** (Claude Code today):
-- Stop hook: strip code blocks, speak prose (max 2000 chars)
-- Notification hook: speak permission prompts aloud
-
-**opencode gap**: opencode has no Stop/Notification hooks. Would need either: (a) opencode hook support added, or (b) a shared `voice speak` wrapper that both agents call explicitly, or (c) polling the conversation log.
-
-**Known limitations**:
-- ~2s first-sentence latency (kokoro generation time)
-- Clipboard clobbered by dictate (pbcopy)
-- Focus-dependent paste — switching apps during transcription mispastes
-- RAM: whisper ~1GB + kokoro ~500MB
-- 20dB mic gain hardcoded for MacBook built-in mic
-
-**Stack**: whisper.cpp, kokoro-onnx, sox, afplay, Raycast, launchd for auto-start.
-
----
-
 ## Search & Retrieval
 
 - **Embedding-based search**: sqlite-vec + Ollama `nomic-embed-text` (768d, free/local). Add `items_vec` virtual table with domain_id partition key for scoped vector search.
@@ -96,6 +63,14 @@ Local push-to-talk + TTS pipeline for hands-free agent interaction.
 8. **Secrets in env only** — No key rotation, no encrypted secrets option
 
 ---
+
+## Completed: Voice Interface (speakeasy) — 2026-02-27
+
+Full voice interaction pipeline implemented in the [speakeasy](https://github.com/arhumsavera/speakeasy) repository.
+
+- **STT**: Whisper-based transcription with global hotkey support.
+- **TTS**: Kokoro-based low-latency speech synthesis.
+- **Integration**: Works across agents via global clipboard/paste and specialized hooks.
 
 ## Completed: Web Dashboard MVP (2026-02-16)
 
@@ -161,4 +136,4 @@ uv run applyops serve
 
 ---
 
-*Last updated: 2026-02-16*
+*Last updated: 2026-02-27*
